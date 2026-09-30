@@ -27,7 +27,7 @@ function chunkOf(t) { let h = 0; for (const ch of t) h = (h * 31 + ch.codePointA
       dchg: pp ? p / pp - 1 : null, diff: pp ? p - pp : null, vol: g("v"), va: g("va"), tvFixed: g("tv"),
       mcap: mc == null ? null : cur === "USD" ? mc / 1e9 : mc, hi: g("hi"), lo: g("lo"), rd: isoD(g("rd")),
       off52: g("hi") ? p / g("hi") - 1 : null, spv, idx: g("ix") || [], research: false, univ: true, grade: null, rating: "—",
-      chunk: chunkOf(t), color: COL[g("s")] || "78909C", lineOnly: g("m") === "US", ...st });
+      chunk: chunkOf(t), color: COL[g("s")] || "78909C", lineOnly: g("m") === "US" && !g("oh"), ...st });
   }
   DATA.universe = { nchunk: U.nchunk, last: U.last };
 })();
@@ -59,7 +59,7 @@ const LS = {
 const F0 = { up: -30, pe: 60, div: 0, off: 0 };
 const state = { tab: LS.get("wl-tab", "home"), q: "", scen: "", sort: "tv", grades: new Set(["A","B","C"]), sectors: new Set(),
   view: LS.get("wl-view2", "rows"), disp: LS.get("wl-disp", "chg"), preset: "", theme: "", grp: "", mkt: "all", ix: "", limit: 100, hm: LS.get("wl-hm", "KR"), f: { ...F0 }, list: [], cur: null, curKind: "stock", best: LS.get("wl-best", "up"),
-  range: LS.get("wl-range", "all"), ma: LS.get("wl-ma", { 5: true, 20: true, 60: true, 120: false }), bb: LS.get("wl-bb", false), osc: LS.get("wl-osc", "none"), ctype: LS.get("wl-ctype", "candle") };
+  range: LS.get("wl-range", "66"), ma: LS.get("wl-ma", { 5: true, 20: true, 60: true, 120: false }), bb: LS.get("wl-bb", false), osc: LS.get("wl-osc", "none"), ctype: LS.get("wl-ctype", "candle") };
 document.documentElement.dataset.updown = LS.get("wl-updown", "kr");
 { const m = LS.get("wl-thmode", "auto"); if (m !== "auto") document.documentElement.dataset.theme = m; }
 
@@ -847,7 +847,7 @@ function chartBtns() {
 let chart = null, lwP = null, chartMain = null, chartBars = [];
 function loadLW() {
   if (window.LightweightCharts) return Promise.resolve(window.LightweightCharts);
-  const srcs = window.LW_SRCS || ["https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];
+  const srcs = window.LW_SRCS || ["vendor/lightweight-charts.js", "https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];
   const one = src => new Promise((res, rej) => {
     const sc = document.createElement("script"); sc.src = src;
     sc.onload = () => window.LightweightCharts ? res(window.LightweightCharts) : rej(new Error("no lib"));

@@ -1,10 +1,10 @@
-# 웹 앱(site/)을 GitHub Pages에 올립니다. site/ 가 바뀌면 자동 실행.
+# 웹 앱을 GitHub Pages에 올립니다.
+# 화면 틀은 main 브랜치의 site/, 매일 바뀌는 데이터(전체 site 결과물)는 site-data 브랜치에서 가져옵니다.
 name: 웹 앱 배포
 
 on:
   push:
-    branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    branches: [main, site-data]
   workflow_dispatch:
 
 permissions:
@@ -24,16 +24,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: 차트 라이브러리 내려받기 (lightweight-charts 4.2.0)
+          ref: main
+      - name: 최신 데이터(site-data) 합치기
         run: |
-          mkdir -p /tmp/lw && cd /tmp/lw
-          npm pack lightweight-charts@4.2.0 --silent
-          tar xzf lightweight-charts-4.2.0.tgz
-          mkdir -p "$GITHUB_WORKSPACE/site/vendor"
-          cp package/dist/lightweight-charts.standalone.production.js "$GITHUB_WORKSPACE/site/vendor/lightweight-charts.js"
+          if git fetch --depth 1 origin site-data 2>/dev/null; then
+            mkdir -p /tmp/sd && git --work-tree=/tmp/sd checkout FETCH_HEAD -- . && git reset -q
+            rm -rf /tmp/sd/.github site/hchunks && cp -r /tmp/sd/. site/
+            echo "site-data 사용: $(ls site/hchunks | wc -l)개 일봉 묶음"
+          else
+            echo "site-data 브랜치 없음 → main의 site/ 그대로"
+          fi
+          mkdir -p site/vendor && cp tools/vendor/lightweight-charts.js site/vendor/lightweight-charts.js
+          test -f site/data.json && test -f site/app.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -16,6 +16,7 @@ from parquet_mini import read_parquet
 A = dict(a.split("=", 1) for a in sys.argv[1:] if "=" in a)
 US = A.get("--us", "us/snap.json"); ETF = A.get("--etf", "/tmp/ie/tickers")
 KR = A.get("--kr", "/tmp/marcap/data"); KRX = A.get("--krx", "/tmp/fdr_krx_data_cache/data")
+OHLC = A.get("--ohlc", "/tmp/ohlc/us.json.gz")   # GitHub Actions가 받은 미국 일봉(시가·고가·저가). 없으면 종가만 사용
 NCHUNK = 96
 report = []
 def log(*x): s = " ".join(str(v) for v in x); print(s); report.append(s)
@@ -61,11 +62,39 @@ for f, tag in (("spy", "SP500"), ("qqq", "NDX"), ("iwm", "R2000"), ("mdy", "SP40
     for l in open(os.path.join(ETF, f + ".txt")):
         t = l.strip().upper().replace("-", ".").replace("/", ".")
         if t: tags.setdefault(t, set()).add(tag)
-norm = lambda t: t.replace("/", ".").upper()
+norm = lambda t: t.strip().replace("/", ".").upper()
 BAD = re.compile(r"\b(warrants?|rights?|units)\b|preferred (stock|shares?|securities)|series [a-z] preferred|depositary shares? representing|notes? due|debentures|subordinated|\d%", re.I)
 EXN = {"nasdaq": "나스닥", "nyse": "NYSE", "amex": "NYSE American"}
 splits = []
 us_last = dates[-1]
+# ---- 미국 일봉(OHLC) 합치기: 날짜가 확정된 우리 종가와 날마다 대조해 97% 이상 맞는 종목만 사용 ----
+YO = {}
+if os.path.exists(OHLC):
+    import gzip
+    _o = json.load(gzip.open(OHLC, "rt", encoding="utf-8")); YO = _o["data"]
+    log("미국 일봉 파일", OHLC, "· 받은 시각", _o["meta"].get("generated"), "·", len(YO), "종목")
+else:
+    log("미국 일봉 파일 없음 → 미국 종목은 종가 선만")
+OH_STAT = {"ok": 0, "few": 0, "bad": 0, "none": 0, "cells": 0, "cell_bad": 0}
+def merge_ohlc(T, h):
+    ys = YO.get(T)
+    if not ys: OH_STAT["none"] += 1; return None
+    Y = {r[0]: r for r in ys}
+    ov = [(r, Y[r[0]]) for r in h if r[0] in Y]
+    good = [abs(y[4] - r[1]) <= max(0.011, r[1] * 0.003) for r, y in ov]
+    if len(ov) < min(20, int(len(h) * 0.8)): OH_STAT["few"] += 1; return None
+    if sum(good) < len(ov) * 0.97: OH_STAT["bad"] += 1; return None
+    OH_STAT["ok"] += 1; OH_STAT["cells"] += len(ov); OH_STAT["cell_bad"] += len(ov) - sum(good)
+    first, lastd = h[0][0], h[-1][0]
+    out = [[y[0], y[1], max(y[1], y[2], y[4]), min(y[1], y[3], y[4]), y[4], y[5]] for y in ys if y[0] < first]   # 우리 자료보다 오래된 날(최대 1년)
+    for r in h:
+        c = r[1]; v = r[2] if len(r) > 2 and r[2] is not None else None
+        y = Y.get(r[0])
+        if y and abs(y[4] - c) <= max(0.011, c * 0.003):
+            out.append([r[0], y[1], max(y[1], y[2], c), min(y[1], y[3], c), c, v if v is not None else y[5]])
+        else:
+            out.append([r[0], c, c, c, c, v or 0])   # 맞지 않는 날은 시가·고가·저가를 쓰지 않음
+    return out[-260:]
 for sym, meta in L.items():
     if "^" in sym: continue
     T = norm(sym); tg = tags.get(T, set()); nm = meta.get("name") or ""
@@ -87,16 +116,19 @@ for sym, meta in L.items():
                     h[k][1] = round(h[k][1] * r, 4)
                     if len(h[k]) > 2 and h[k][2] is not None: h[k][2] = int(h[k][2] / r)
                 splits.append(f"{T} {d} 비율 {r:.4f}")
+    oh = merge_ohlc(T, h)
+    if oh: h = oh
     last = h[-1]; prev = h[-2]
     name = re.sub(r"\s*\((DE|MD|NV|TX|Delaware|Maryland|Nevada)\)\s*$", "", nm)
     name = re.sub(r"\s+(Class [A-Z] )?(Common Stock|Ordinary Shares?|Common Shares?|Subordinate Voting Shares|American Depositary Shares?|Depositary Shares?|Shares of Beneficial Interest|Common Units?|Units? representing).*$", "", name).strip() or T
-    closes = [r[1] for r in h]
+    closes = [r[4] if oh else r[1] for r in h]
     rows_out[T] = {"t": T, "n": name, "m": "US", "x": EXN.get(meta.get("ex"), meta.get("ex")), "s": SEC_US.get(meta.get("sector") or "", "기타"),
-                   "i": meta.get("industry") or "", "p": last[1], "d": str(last[0]), "pd": str(prev[0]), "pp": prev[1],
-                   "v": last[2] if len(last) > 2 else None, "mc": mc or None, "hi": max(closes), "lo": min(closes), "rd": str(h[0][0]),
-                   "ix": sorted(tg), "cur": "USD", "va": avgvol(h, 2)}
+                   "i": meta.get("industry") or "", "p": last[4] if oh else last[1], "d": str(last[0]), "pd": str(prev[0]), "pp": prev[4] if oh else prev[1],
+                   "v": (last[5] if oh else last[2] if len(last) > 2 else None), "mc": mc or None, "hi": max(closes), "lo": min(closes), "rd": str(h[0][0]),
+                   "ix": sorted(tg), "cur": "USD", "va": avgvol(h, 5 if oh else 2), "oh": 1 if oh else None}
     hist_out[T] = h
 log("미국 분할·병합 보정", len(splits), splits[:12])
+log(f"미국 일봉(OHLC) 합침 {OH_STAT['ok']}종목 · 대조 {OH_STAT['cells']}일 중 불일치 {OH_STAT['cell_bad']} · 자료 부족 {OH_STAT['few']} · 불일치로 제외 {OH_STAT['bad']} · 파일에 없음 {OH_STAT['none']}")
 log("미국 종목", sum(1 for r in rows_out.values() if r["m"] == "US"), "· 날짜", dates[0], "~", us_last)
 for tag in ("SP500", "NDX", "R2000", "SP400", "SP600"):
     want = {t for t, g in tags.items() if tag in g}; got = {t for t in want if t in rows_out}
@@ -223,6 +255,18 @@ for t, rows in H.items():
         chk += 1
         if abs(c - r[4]) > max(0.011, r[4] * 0.002): bad += 1; report.append(f"  불일치 {t} {r[0]} 기준 {r[4]} / 전체 데이터 {c}")
 log(f"검증(기존 일봉과 대조): {chk}개 값 중 불일치 {bad}")
+# 미국 시가·고가·저가도 따로 대조(기준: stockanalysis 일봉, 서로 다른 출처)
+ochk = obad = 0
+for t, rows in H.items():
+    if t not in hist_out or not (rows_out.get(t) or {}).get("oh"): continue
+    mine = {r[0]: r for r in hist_out[t]}
+    for r in rows:
+        m = mine.get(r[0])
+        if not m or len(m) < 6 or m[1] == m[2] == m[3] == m[4]: continue
+        for a, b in ((m[1], r[1]), (m[2], r[2]), (m[3], r[3])):
+            ochk += 1
+            if abs(a - b) > max(0.011, b * 0.005): obad += 1; report.append(f"  시가·고가·저가 불일치 {t} {r[0]} 기준 {r[1:4]} / 전체 데이터 {m[1:4]}"); break
+log(f"검증(미국 시가·고가·저가 대조): {ochk}개 값 중 불일치 {obad}")
 # 값 점검
 for t, r in rows_out.items():
     assert r["p"] > 0 and r["pp"] > 0, t
@@ -263,7 +307,7 @@ def stats(h):
     return out
 for t, r in rows_out.items(): r.update(stats(hist_out[t]))
 cols = ["t", "n", "m", "x", "s", "i", "p", "d", "pd", "pp", "v", "tv", "mc", "hi", "lo", "rd", "ix", "cur", "prod", "va",
-        "r5", "r20", "r60", "r120", "r250", "rsi", "gc", "dc", "stk", "m60"]
+        "r5", "r20", "r60", "r120", "r250", "rsi", "gc", "dc", "stk", "m60", "oh"]
 def spark(h):
     cs = [(r[4] if len(r) > 3 else r[1]) for r in h[-40:]]
     mn, mx = min(cs), max(cs); rg = (mx - mn) or 1
@@ -277,8 +321,17 @@ uni = {"cols": cols + ["sp"], "rows": [[r.get(c) for c in cols] + [spark(hist_ou
 json.dump(uni, open("universe.json", "w"), ensure_ascii=False, separators=(",", ":"))
 os.makedirs("hchunks", exist_ok=True)
 for f in glob.glob("hchunks/*.js"): os.remove(f)
+def compact(t, h):
+    if rows_out[t]["m"] != "US": return h
+    rp = lambda x: x if not isinstance(x, float) else (round(x, 2) if abs(x) >= 1 else round(x, 4))
+    out = []
+    for r in h:
+        r = [r[0]] + [rp(x) for x in r[1:]]
+        if len(r) >= 5 and not isinstance(r[-1], float): r[-1] = r[-1] or 0
+        out.append([int(x) if isinstance(x, float) and x == int(x) else x for x in r])
+    return out
 chunks = {}
-for t, h in hist_out.items(): chunks.setdefault(chunk_of(t), {})[t] = h
+for t, h in hist_out.items(): chunks.setdefault(chunk_of(t), {})[t] = compact(t, h)
 for k, v in chunks.items():
     open(f"hchunks/{k:02d}.js", "w").write("window.__HC&&window.__HC(%d,%s);" % (k, json.dumps(v, separators=(",", ":"))))
 sz = sum(os.path.getsize(f) for f in glob.glob("hchunks/*.js"))

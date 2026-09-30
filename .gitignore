@@ -23,3 +23,5 @@ tools/universe_report.txt
 
 # 서명 키는 긴 비밀번호로 암호화된 상태로만 저장소에 둔다(비밀번호는 GitHub Secrets의 KEYSTORE_PASS)
 !android/release.jks
+site/data.json
+site/hchunks/
