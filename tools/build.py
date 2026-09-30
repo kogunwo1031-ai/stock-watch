@@ -30,7 +30,7 @@ RATING = {"Strong Buy": "강력 매수", "Buy": "매수", "Hold": "보유", "Sel
 SECTOR_COLOR = {  # 배지(진한색)
  "정보기술": "0D2B52", "커뮤니케이션서비스": "7030A0", "산업재": "44546A", "소재": "7F7F7F",
  "에너지": "C55A11", "에너지(신재생)": "548235", "금융": "0B6E69", "헬스케어": "C00000",
- "필수소비재": "8B6914", "임의소비재": "C2185B", "부동산(리츠)": "5D4037", "유틸리티": "1565C0"}
+ "필수소비재": "8B6914", "임의소비재": "C2185B", "부동산(리츠)": "5D4037", "유틸리티": "1565C0", "ETF": "37474F"}
 def light(hexc, k=0.85):
     r, g, b = (int(hexc[i:i+2], 16) for i in (0, 2, 4))
     return "".join(f"{int(c + (255 - c) * k):02X}" for c in (r, g, b))
@@ -403,7 +403,33 @@ for d in view_rows:
                 | {"upside": pct(d["tgt"], d["price"]), "msdisc": msd, "off52": pct(d["price"], d["hi"]),
                    "chg": pct(d["price"], d["prev"]), "prevdate": d["prevdate"], "color": SECTOR_COLOR[d["major"]],
                    "dchg": pct(d["price"], d["ref_close"]), "diff": (d["price"] - d["ref_close"]) if d["ref_close"] else None, "ref_date": d["ref_date"], "src_price": d["src_price"],
-                   "note": d.get("note"), "h": d["h"]})
+                   "note": d.get("note"), "h": d["h"], "mkt": "US", "cur": "USD", "ex": "미국", "research": True})
+
+# 시장 종목(국내·해외 거래 많은 종목): market.json + mquotes.csv + history.json. 리서치 등급 없음, 엑셀에는 넣지 않음
+if os.path.exists("market.json"):
+    MQ = {r["ticker"]: r for r in csv.DictReader(open("mquotes.csv", encoding="utf-8"))} if os.path.exists("mquotes.csv") else {}
+    MP = {r["ticker"]: r for r in csv.DictReader(open("prev_mquotes.csv", encoding="utf-8"))} if os.path.exists("prev_mquotes.csv") else {}
+    def fnum(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    for m in json.load(open("market.json", encoding="utf-8")):
+        q = MQ.get(m["t"], {}); h = H.get(m["t"], [])
+        price, qdate = fnum(q.get("price")), (q.get("date") or "")[:10] or None
+        if h and (not qdate or iso(h[-1][0]) >= qdate): price, qdate = h[-1][4], iso(h[-1][0])
+        if price is None: print("시장 종목 가격 없음:", m["t"]); continue
+        before = [r for r in h if iso(r[0]) < qdate]
+        ref = before[-1][4] if before else None
+        lo, hi = fnum(q.get("lo")), fnum(q.get("hi"))
+        if lo and hi and (hi / lo > 6 or not (lo * 0.7 <= price <= hi * 1.3)): lo = hi = None   # 앞뒤가 안 맞는 52주 범위는 버림
+        if lo is not None: lo = min(lo, price)
+        if hi is not None: hi = max(hi, price)
+        tgt = fnum(q.get("target")); prev = MP.get(m["t"])
+        dash.append({"t": m["t"], "name": m["name"], "major": m["major"], "sub": m["sub"], "desc": m["desc"], "mkt": m["mkt"], "cur": m["cur"], "ex": m["ex"],
+                     "research": False, "grade": None, "price": price, "qdate": qdate, "mcap": mcap_b(q.get("mcap")) if m["mkt"] == "US" else None, "pe": fnum(q.get("pe")), "fpe": fnum(q.get("fpe")),
+                     "div": fnum(q.get("div")), "rating": RATING.get(q.get("rating") or "", q.get("rating") or "—"), "tgt": tgt, "lo": lo, "hi": hi,
+                     "upside": pct(tgt, price) if tgt and 0.3 < tgt / price < 3 else None, "off52": pct(price, hi), "chg": pct(price, fnum(prev["price"])) if prev else None,
+                     "dchg": pct(price, ref), "diff": (price - ref) if ref else None, "ref_date": iso(before[-1][0]) if before else None,
+                     "color": SECTOR_COLOR.get(m["major"], "37474F"), "h": h[-150:]})
 # 시장 지수(코스피·나스닥 등): indices.json → 최근 150거래일
 INDEX_META = [  # 기호, 이름, 짧은 이름, 지역, 단위, 실시간 링크
     ("^KS11", "코스피", "코스피", "국내", "pt", "https://finance.yahoo.com/quote/%5EKS11/"),
@@ -425,7 +451,7 @@ for sym, nm, short, region, unit, url in INDEX_META:
                     "price": h[-1][4], "qdate": iso(h[-1][0]), "ref_close": h[-2][4], "ref_date": iso(h[-2][0]),
                     "dchg": h[-1][4] / h[-2][4] - 1, "diff": h[-1][4] - h[-2][4]})
 
-json.dump({"updated": RUN_DATE, "quote_date": max(d["qdate"] for d in rows), "stocks": dash, "indices": indices,
+json.dump({"updated": RUN_DATE, "quote_date": max(d["qdate"] for d in rows), "kr_date": max([d["qdate"] for d in dash if d.get("mkt") == "KR"] or [None]), "stocks": dash, "indices": indices,
            "sector_guide": R["sector_guide"], "sector_colors": SECTOR_COLOR},
           open("data.json", "w", encoding="utf-8"), ensure_ascii=False)
 print(out, len(rows), "종목")
