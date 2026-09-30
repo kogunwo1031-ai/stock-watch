@@ -25,14 +25,16 @@ jobs:
           gradle-version: "8.9"
       - name: 서명 키 준비
         env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 || vars.KEYSTORE_B64 }}
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then echo "::error::KEYSTORE_B64(서명 키)가 설정되지 않았습니다"; exit 1; fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          if [ -z "$KEYSTORE_PASS" ]; then echo "::error::저장소 Settings → Secrets and variables → Actions 에 KEYSTORE_PASS 를 추가해 주세요"; exit 1; fi
+          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"; else cp android/release.jks "$RUNNER_TEMP/release.jks"; fi
+          keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASS" > /dev/null || { echo "::error::KEYSTORE_PASS 가 서명 키와 맞지 않습니다"; exit 1; }
           echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
       - name: APK 빌드
         env:
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS || vars.KEYSTORE_PASS }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           VERSION_CODE: ${{ github.run_number }}
         run: |
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"

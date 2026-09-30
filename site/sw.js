@@ -1,6 +1,6 @@
 // 오프라인 캐시: 앱 틀은 캐시 우선, data.json은 네트워크 우선(실패 시 마지막 데이터)
-const CACHE = "sw-daad32aa2b";
-const SHELL = ["./", "index.html", "app.js?v=daad32aa2b", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "vendor/lightweight-charts.js"];
+const CACHE = "sw-1f971de829";
+const SHELL = ["./", "index.html", "app.js?v=1f971de829", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "vendor/lightweight-charts.js"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
 });

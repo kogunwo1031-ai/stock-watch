@@ -117,6 +117,13 @@ header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); displ
 .rp { text-align: right; display: grid; justify-items: end; gap: 0 }
 .rp .p { font-weight: 700; font-size: 15.5px }
 .rp .c { font-size: 13px; font-weight: 500 }
+.rw .s .xm { font-family: var(--font-num); white-space: nowrap }
+.rw .s .xm { font-family: var(--font-num); white-space: nowrap }
+.pill { display: inline-block; min-width: 66px; text-align: center; padding: 3px 7px; border-radius: 8px; font-size: 13px; font-weight: 700; background: var(--surface-2); color: var(--fg-2); margin-top: 2px }
+.pill.pos { background: color-mix(in srgb, var(--up) 14%, transparent); color: var(--up) }
+.pill.neg { background: color-mix(in srgb, var(--down) 14%, transparent); color: var(--down) }
+.badge.lim.pos { background: var(--up); color: #fff } .badge.lim.neg { background: var(--down); color: #fff }
+.dispbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap }
 .grade { font-weight: 800; font-size: 11px; width: 18px; height: 18px; border-radius: 6px; display: inline-grid; place-items: center; flex: none }
 .g-A { background: var(--good-bg); color: var(--good) } .g-B { background: var(--warn-bg); color: var(--warn) } .g-C { background: var(--c-bg); color: var(--c-fg) }
 .badge { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); white-space: nowrap; font-weight: 500 }
@@ -129,6 +136,11 @@ header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); displ
 .btn.on { background: var(--accent-bg); color: var(--accent) }
 
 /* 섹터 등락 타일 */
+.heat { position: relative; height: 340px; border-radius: 14px; overflow: hidden; background: var(--surface-2) }
+.heat button { position: absolute; border: 1px solid var(--surface); padding: 4px 5px; text-align: left; overflow: hidden; color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; font-size: 11px; line-height: 1.2 }
+.heat button b { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100% }
+.heat button.big b { font-size: 14px } .heat button.big span { font-size: 13px }
+.heat button.tiny b, .heat button.tiny span { display: none }
 .secs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px }
 .sec { border: 0; border-radius: 14px; padding: 12px; text-align: left; display: grid; gap: 2px; min-width: 0 }
 .sec .n { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
@@ -219,8 +231,8 @@ tbody tr { cursor: pointer } tbody tr:hover { background: var(--surface-2) }
   .tabbar button[aria-pressed="true"] { background: var(--surface) }
   .bar { top: calc(104px + env(safe-area-inset-top)) }
   html { scroll-padding-top: 120px }
-  .view[data-view="home"] { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "idx idx" "best br" "best sec" "best star" "best ."; align-items: start }
-  .view[data-view="home"] > .idx { grid-area: idx } .h-br { grid-area: br } .h-best { grid-area: best } .h-sec { grid-area: sec } .h-star { grid-area: star }
+  .view[data-view="home"] { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "idx idx" "hm hm" "alert alert" "best br" "best heat" "best theme" "best sec" "star sec"; align-items: start }
+  .view[data-view="home"] > .idx { grid-area: idx } .view[data-view="home"] > .row { grid-area: hm } .h-alert { grid-area: alert } .h-br { grid-area: br } .h-best { grid-area: best } .h-sec { grid-area: sec } .h-star { grid-area: star } .h-heat { grid-area: heat } .h-theme { grid-area: theme }
   .h-sec .secs { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .view[data-view="star"], .view[data-view="hold"] { max-width: 720px; width: 100%; margin: 0 auto }
 }
@@ -253,6 +265,13 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
 .malgd label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer }
 .malgd i { width: 14px; height: 3px; border-radius: 2px; display: inline-block }
 #chart { height: 320px; position: relative; min-width: 0; margin: 0 -8px }
+#chart.tall { height: 420px }
+.rets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px }
+.rets div { background: var(--surface-2); border-radius: 10px; padding: 6px 2px; display: grid; gap: 1px; text-align: center }
+.rets .k { font-size: 11.5px; color: var(--muted) } .rets .v { font-weight: 700; font-size: 13.5px }
+#chartbox.full { position: fixed; inset: 0; z-index: 200; border-radius: 0; overflow: auto; padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)) }
+#chartbox.full #chart { height: calc(100dvh - 230px); min-height: 260px }
+:root { --ma4: #EC4899 }
 .cnote { font-size: 12px; color: var(--muted) }
 .kv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 20px }
 .kv > div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); min-width: 0; font-size: 14px }
@@ -323,6 +342,18 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
       <div class="rows" id="best"></div>
       <div style="padding:0 20px 8px"><button type="button" class="btn" id="bestmore" style="width:100%">전체 보기</button></div>
     </div>
+    <div class="box h-alert" id="alertbox" hidden>
+      <div class="bh"><h2>내 알림</h2><span class="sub">관심·보유 종목</span></div>
+      <div class="rows" id="alerts" style="margin:0 -20px"></div>
+    </div>
+    <div class="box h-heat">
+      <div class="bh"><h2>시장 지도</h2><span class="sub" id="heatsub"></span></div>
+      <div id="heat" class="heat" role="img" aria-label="시가총액 상위 종목 등락 지도"></div>
+    </div>
+    <div class="box h-theme">
+      <div class="bh"><h2>테마별 등락</h2><span class="sub">평균 등락률 · 누르면 종목</span></div>
+      <div class="secs" id="themes"></div>
+    </div>
     <div class="box h-sec">
       <div class="bh"><h2>섹터별 등락</h2><span class="sub">섹터 안 종목 평균</span></div>
       <div class="secs" id="secs"></div>
@@ -373,9 +404,12 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
         </div>
         <div class="sfoot"><button type="button" class="btn" id="reset2">모두 해제</button><button type="button" class="btn prim" id="capply">결과 보기</button></div>
       </div>
+      <div class="chips" id="presets" aria-label="골라보기"></div>
       <div class="chips" id="ixchips" aria-label="지수 편입 필터"></div>
       <div class="chips" id="chips" aria-label="섹터 필터"></div>
-      <div class="count"><span id="count"></span><button type="button" class="linkbtn" id="reset" hidden>필터 해제</button></div>
+      <div class="count dispbar"><span><span id="count"></span> <span id="themetag"></span> <button type="button" class="linkbtn" id="reset" hidden>필터 해제</button></span>
+        <span class="seg sm dispseg"><button type="button" data-dp="chg">등락률</button><button type="button" data-dp="diff">등락폭</button><button type="button" data-dp="tv">거래대금</button><button type="button" data-dp="mcap">시총</button></span></div>
+      <div id="recent"></div>
     </div>
     <div id="list"></div>
   </section>
@@ -406,6 +440,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
   <section class="view" data-view="more" hidden>
     <div class="box">
       <div class="bh"><h2>설정</h2></div>
+      <div class="setrow"><span>화면 모드</span><span class="seg" id="thmode"><button type="button" data-m="auto">시스템</button><button type="button" data-m="light">라이트</button><button type="button" data-m="dark">다크</button></span></div>
       <div class="setrow"><span>등락 색</span><span class="seg" id="updown"><button type="button" data-u="kr">상승 빨강</button><button type="button" data-u="us">상승 초록</button></span></div>
       <div class="setrow"><span>내 기록 저장</span><span id="store" class="pill"></span></div>
     </div>
@@ -428,7 +463,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
 <div id="boot" style="position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);color:var(--muted);font-size:14px;z-index:100">불러오는 중…</div>
 <script>
 window.LW_SRCS = ["vendor/lightweight-charts.js", "https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];
-window.APP_VERSION = "daad32aa2b";
+window.APP_VERSION = "1f971de829";
 (async () => {
   const boot = document.getElementById("boot");
   try {
@@ -439,7 +474,7 @@ window.APP_VERSION = "daad32aa2b";
     boot.textContent = "데이터를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
     return;
   }
-  const s = document.createElement("script"); s.src = "app.js?v=daad32aa2b";
+  const s = document.createElement("script"); s.src = "app.js?v=1f971de829";
   s.onload = () => boot.remove();
   s.onerror = () => boot.textContent = "앱 파일을 불러오지 못했습니다. 다시 열어 주세요.";
   document.body.appendChild(s);
