@@ -1,0 +1,27 @@
+# 미국 종목 일봉(OHLC)을 받아 'ohlc' 브랜치에 올립니다(매번 덮어써서 저장소가 커지지 않음).
+# 미국 장 마감 뒤(한국 시간 화~토 오전 7:20)에 돌고, Claude의 아침 갱신 작업이 이 자료를 검증해 차트에 넣습니다.
+name: 미국 일봉 받기
+on:
+  schedule:
+    - cron: "20 22 * * 1-5"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet yfinance
+      - run: python tools/us_ohlc_fetch.py
+      - name: ohlc 브랜치에 올리기
+        run: |
+          cd ohlc
+          git init -q -b ohlc
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add us.json.gz && git commit -qm "미국 일봉 $(date -u +%Y-%m-%d)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" ohlc
