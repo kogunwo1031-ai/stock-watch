@@ -20,7 +20,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install --quiet yfinance
-      - run: python tools/us_ohlc_fetch.py
+      - name: 종목 목록(site-data 브랜치의 data.json)
+        run: git fetch --depth 1 origin site-data && git show FETCH_HEAD:data.json > /tmp/data.json
+      - run: python tools/us_ohlc_fetch.py /tmp/data.json
       - name: ohlc 브랜치에 올리기
         run: |
           cd ohlc

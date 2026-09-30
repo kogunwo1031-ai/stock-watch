@@ -7,9 +7,9 @@ ohlc/us.json.gz 로 저장한다. 값은 액면분할만 반영한 원래 가격
 import json, gzip, os, sys, time, math
 import yfinance as yf
 
-d = json.load(open("site/data.json", encoding="utf-8"))
+d = json.load(open(sys.argv[1] if len(sys.argv) > 1 else "site/data.json", encoding="utf-8"))
 U = d["universe"]; c = U["cols"]; it, im = c.index("t"), c.index("m")
-syms = sorted({r[it] for r in U["rows"] if r[im] == "US"})
+syms = sorted({r[it].strip() for r in U["rows"] if r[im] == "US"})
 print("미국 종목", len(syms))
 ysym = lambda t: t.replace(".", "-").replace("/", "-")
 out, fail = {}, []
