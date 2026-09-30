@@ -12,3 +12,11 @@ site/vendor/*.js
 tools/data.json
 tools/incoming/
 tools/dashboard_template.txt
+site/data/
+collector/
+tools/app_data.js
+tools/hchunks/
+tools/us/
+tools/uhist_sel.json
+tools/universe.json
+tools/universe_report.txt

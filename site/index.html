@@ -351,6 +351,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
             <option value="off52">52주 고점 대비 많이 빠진 순</option><option value="div">배당수익률 높은 순</option><option value="fpe">예상 PER 낮은 순</option>
             <option value="mcap">시가총액 큰 순</option><option value="chg">지난주 대비 상승 순</option><option value="buygap">매수 희망가에 가까운 순</option>
           </select>
+          <select id="ixf" aria-label="지수 편입"><option value="">지수 전체</option><option value="SP500">S&amp;P 500</option><option value="NDX">나스닥 100</option><option value="SP400">S&amp;P 400(중형)</option><option value="SP600">S&amp;P 600(소형)</option><option value="R1000">러셀 1000</option><option value="R2000">러셀 2000</option><option value="K200">코스피 200</option><option value="KQ150">코스닥 150</option><option value="ETF">ETF</option></select>
           <select id="scen" aria-label="시나리오">
             <option value="">시나리오 전체</option><option>지금 유리</option><option>방어</option><option>인상 종료 후</option><option>AI 성장</option>
           </select>
@@ -372,6 +373,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
         </div>
         <div class="sfoot"><button type="button" class="btn" id="reset2">모두 해제</button><button type="button" class="btn prim" id="capply">결과 보기</button></div>
       </div>
+      <div class="chips" id="ixchips" aria-label="지수 편입 필터"></div>
       <div class="chips" id="chips" aria-label="섹터 필터"></div>
       <div class="count"><span id="count"></span><button type="button" class="linkbtn" id="reset" hidden>필터 해제</button></div>
     </div>
@@ -426,7 +428,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
 <div id="boot" style="position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);color:var(--muted);font-size:14px;z-index:100">불러오는 중…</div>
 <script>
 window.LW_SRCS = ["vendor/lightweight-charts.js", "https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];
-window.APP_VERSION = "45d926fd1e";
+window.APP_VERSION = "daad32aa2b";
 (async () => {
   const boot = document.getElementById("boot");
   try {
@@ -437,7 +439,7 @@ window.APP_VERSION = "45d926fd1e";
     boot.textContent = "데이터를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
     return;
   }
-  const s = document.createElement("script"); s.src = "app.js?v=45d926fd1e";
+  const s = document.createElement("script"); s.src = "app.js?v=daad32aa2b";
   s.onload = () => boot.remove();
   s.onerror = () => boot.textContent = "앱 파일을 불러오지 못했습니다. 다시 열어 주세요.";
   document.body.appendChild(s);

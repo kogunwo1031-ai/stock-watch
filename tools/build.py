@@ -30,7 +30,7 @@ RATING = {"Strong Buy": "강력 매수", "Buy": "매수", "Hold": "보유", "Sel
 SECTOR_COLOR = {  # 배지(진한색)
  "정보기술": "0D2B52", "커뮤니케이션서비스": "7030A0", "산업재": "44546A", "소재": "7F7F7F",
  "에너지": "C55A11", "에너지(신재생)": "548235", "금융": "0B6E69", "헬스케어": "C00000",
- "필수소비재": "8B6914", "임의소비재": "C2185B", "부동산(리츠)": "5D4037", "유틸리티": "1565C0", "ETF": "37474F"}
+ "필수소비재": "8B6914", "임의소비재": "C2185B", "부동산(리츠)": "5D4037", "유틸리티": "1565C0", "ETF": "37474F", "지주회사": "546E7A", "기타": "78909C"}
 def light(hexc, k=0.85):
     r, g, b = (int(hexc[i:i+2], 16) for i in (0, 2, 4))
     return "".join(f"{int(c + (255 - c) * k):02X}" for c in (r, g, b))
@@ -412,8 +412,11 @@ if os.path.exists("market.json"):
     def fnum(x):
         try: return float(x)
         except (TypeError, ValueError): return None
+    USEL = json.load(open("uhist_sel.json")) if os.path.exists("uhist_sel.json") else {}
     for m in json.load(open("market.json", encoding="utf-8")):
         q = MQ.get(m["t"], {}); h = H.get(m["t"], [])
+        if m["mkt"] == "KR" and USEL.get(m["t"]):
+            h = USEL[m["t"]]; q = {k: v for k, v in q.items() if k not in ("price", "date", "lo", "hi")}   # 국내는 KRX 공식 일별 시세(marcap) 사용
         price, qdate = fnum(q.get("price")), (q.get("date") or "")[:10] or None
         if h and (not qdate or iso(h[-1][0]) >= qdate): price, qdate = h[-1][4], iso(h[-1][0])
         if price is None: print("시장 종목 가격 없음:", m["t"]); continue
@@ -451,7 +454,8 @@ for sym, nm, short, region, unit, url in INDEX_META:
                     "price": h[-1][4], "qdate": iso(h[-1][0]), "ref_close": h[-2][4], "ref_date": iso(h[-2][0]),
                     "dchg": h[-1][4] / h[-2][4] - 1, "diff": h[-1][4] - h[-2][4]})
 
-json.dump({"updated": RUN_DATE, "quote_date": max(d["qdate"] for d in rows), "kr_date": max([d["qdate"] for d in dash if d.get("mkt") == "KR"] or [None]), "stocks": dash, "indices": indices,
+UNI = json.load(open("universe.json", encoding="utf-8")) if os.path.exists("universe.json") else None
+json.dump({"updated": RUN_DATE, "universe": UNI, "quote_date": max(d["qdate"] for d in rows), "kr_date": max([d["qdate"] for d in dash if d.get("mkt") == "KR"] or [None]), "stocks": dash, "indices": indices,
            "sector_guide": R["sector_guide"], "sector_colors": SECTOR_COLOR},
           open("data.json", "w", encoding="utf-8"), ensure_ascii=False)
 print(out, len(rows), "종목")

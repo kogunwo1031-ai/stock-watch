@@ -338,6 +338,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
             <option value="off52">52주 고점 대비 많이 빠진 순</option><option value="div">배당수익률 높은 순</option><option value="fpe">예상 PER 낮은 순</option>
             <option value="mcap">시가총액 큰 순</option><option value="chg">지난주 대비 상승 순</option><option value="buygap">매수 희망가에 가까운 순</option>
           </select>
+          <select id="ixf" aria-label="지수 편입"><option value="">지수 전체</option><option value="SP500">S&amp;P 500</option><option value="NDX">나스닥 100</option><option value="SP400">S&amp;P 400(중형)</option><option value="SP600">S&amp;P 600(소형)</option><option value="R1000">러셀 1000</option><option value="R2000">러셀 2000</option><option value="K200">코스피 200</option><option value="KQ150">코스닥 150</option><option value="ETF">ETF</option></select>
           <select id="scen" aria-label="시나리오">
             <option value="">시나리오 전체</option><option>지금 유리</option><option>방어</option><option>인상 종료 후</option><option>AI 성장</option>
           </select>
@@ -359,6 +360,7 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
         </div>
         <div class="sfoot"><button type="button" class="btn" id="reset2">모두 해제</button><button type="button" class="btn prim" id="capply">결과 보기</button></div>
       </div>
+      <div class="chips" id="ixchips" aria-label="지수 편입 필터"></div>
       <div class="chips" id="chips" aria-label="섹터 필터"></div>
       <div class="count"><span id="count"></span><button type="button" class="linkbtn" id="reset" hidden>필터 해제</button></div>
     </div>
@@ -411,6 +413,52 @@ dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
 
 <script>
 const DATA = __DATA__;
+/* ---------- 전 종목(미국 지수 편입·상장주, 국내 코스피·코스닥) 합치기 ---------- */
+const NCHUNK = DATA.universe ? DATA.universe.nchunk : 96;
+function chunkOf(t) { let h = 0; for (const ch of t) h = (h * 31 + ch.codePointAt(0)) % 1000003; return h % NCHUNK; }
+(function mergeUniverse() {
+  const U = DATA.universe; if (!U) return;
+  const C = {}; U.cols.forEach((c, i) => C[c] = i);
+  const byT = Object.fromEntries(DATA.stocks.map(s => [s.t, s]));
+  const isoD = x => x ? `${x.slice(0, 4)}-${x.slice(4, 6)}-${x.slice(6, 8)}` : null;
+  const COL = DATA.sector_colors || {};
+  for (const r of U.rows) {
+    const g = k => r[C[k]], t = g("t");
+    const spv = [...(g("sp") || "")].map(ch => ch.codePointAt(0) - 48);
+    const ex = byT[t];
+    if (ex) {   // 이미 있는 종목(저평가·선별): 지수 편입·업종·기간 범위만 보탬
+      ex.idx = g("ix") || []; ex.ind = g("i"); ex.chunk = chunkOf(t); if (!/[A-Za-z]/.test(ex.name) || ex.mkt === "US") ex.en = g("n");
+      if (ex.lo == null && g("lo") != null) { ex.lo = g("lo"); ex.hi = g("hi"); ex.rd = isoD(g("rd")); }
+      if (ex.mkt === "KR" && g("tv") != null && isoD(g("d")) === ex.qdate) ex.tvFixed = g("tv");
+      if (ex.mkt === "KR" && ex.mcap == null && g("mc")) ex.mcap = g("mc");
+      continue;
+    }
+    const p = g("p"), pp = g("pp"), cur = g("cur"), mc = g("mc");
+    DATA.stocks.push({ t, name: g("n"), mkt: g("m"), cur, ex: g("x"), major: g("s") || "기타", sub: g("i") || g("x"), ind: g("i"),
+      desc: g("prod") ? `주요 제품: ${g("prod")}` : (g("i") || ""), price: p, qdate: isoD(g("d")), ref_date: isoD(g("pd")),
+      dchg: pp ? p / pp - 1 : null, diff: pp ? p - pp : null, vol: g("v"), va: g("va"), tvFixed: g("tv"),
+      mcap: mc == null ? null : cur === "USD" ? mc / 1e9 : mc, hi: g("hi"), lo: g("lo"), rd: isoD(g("rd")),
+      off52: g("hi") ? p / g("hi") - 1 : null, spv, idx: g("ix") || [], research: false, univ: true, grade: null, rating: "—",
+      chunk: chunkOf(t), color: COL[g("s")] || "78909C", lineOnly: g("m") === "US" });
+  }
+  DATA.universe = { nchunk: U.nchunk, last: U.last };
+})();
+/* 상세 화면에서 필요할 때만 그 종목의 일봉 묶음을 불러옴 */
+const HCACHE = {}, HWAIT = {};
+window.__HC = (k, obj) => { HCACHE[k] = obj; (HWAIT[k] || []).forEach(f => f.ok()); delete HWAIT[k]; };
+window.__loadHist = t => new Promise((ok, bad) => {
+  const k = chunkOf(t), done = () => {
+    const rows = (HCACHE[k] || {})[t] || [];
+    ok(rows.map(r => r.length >= 5 ? r : [r[0], r[1], r[1], r[1], r[1], r[2] || 0]));
+  };
+  if (HCACHE[k]) return done();
+  const first = !HWAIT[k]; (HWAIT[k] = HWAIT[k] || []).push({ ok: done, bad });
+  if (!first) return;
+  const sc = document.createElement("script"); sc.src = `hchunks/${String(k).padStart(2, "0")}.js`;
+  const fail = () => { const w = HWAIT[k] || []; delete HWAIT[k]; sc.remove(); w.forEach(f => f.bad(new Error("차트 자료를 불러오지 못함"))); };
+  sc.onerror = fail; setTimeout(() => { if (HWAIT[k]) fail(); }, 15000);
+  document.head.appendChild(sc);
+});
 
 const $ = s => document.querySelector(s);
 const S = DATA.stocks, BY = Object.fromEntries(S.map(s => [s.t, s]));
@@ -422,7 +470,7 @@ const LS = {
 };
 const F0 = { up: -30, pe: 60, div: 0, off: 0 };
 const state = { tab: LS.get("wl-tab", "home"), q: "", scen: "", sort: "tv", grades: new Set(["A","B","C"]), sectors: new Set(),
-  view: LS.get("wl-view2", "rows"), mkt: "all", hm: LS.get("wl-hm", "KR"), f: { ...F0 }, list: [], cur: null, curKind: "stock", best: LS.get("wl-best", "up"),
+  view: LS.get("wl-view2", "rows"), mkt: "all", ix: "", limit: 100, hm: LS.get("wl-hm", "KR"), f: { ...F0 }, list: [], cur: null, curKind: "stock", best: LS.get("wl-best", "up"),
   range: LS.get("wl-range", "all"), ma: LS.get("wl-ma", { 5: true, 20: true, 60: true }), ctype: LS.get("wl-ctype", "candle") };
 document.documentElement.dataset.updown = LS.get("wl-updown", "kr");
 
@@ -442,7 +490,7 @@ const fmtPct = (v, sign = true, d = 1) => v == null ? '<span class="na">—</spa
 const fmtChg = v => v == null ? '<span class="na">—</span>' : `<span class="${cls(v)}">${v > 0 ? "+" : ""}${(v * 100).toFixed(2)}%</span>`;
 const fmtX = v => v == null ? '<span class="na">—</span>' : v.toFixed(1) + "배";
 const fmtDiv = v => v == null ? '<span class="na">무배당</span>' : (v * 100).toFixed(1) + "%";
-const fmtCap = v => v == null ? "—" : v >= 1000 ? "$" + (v / 1000).toFixed(2) + "조" : "$" + v.toFixed(1) + "B";
+const fmtCap = (v, cur) => v == null ? "—" : cur === "KRW" ? (v >= 1e12 ? (v / 1e12).toFixed(1) + "조원" : Math.round(v / 1e8).toLocaleString("ko-KR") + "억원") : v >= 1000 ? "$" + (v / 1000).toFixed(2) + "조" : "$" + v.toFixed(1) + "B";
 const fmtBig = v => v == null ? "—" : v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : String(v);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3.2l2.6 5.5 6 .7-4.4 4.1 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.1 6-.7z"/></svg>';
@@ -451,14 +499,18 @@ const latestOf = mkt => mkt === "KR" ? (DATA.kr_date || DATA.quote_date) : DATA.
 const stale = s => days(latestOf(s.mkt), s.qdate) > 3;
 const refLabel = s => !s.ref_date ? "" : days(s.qdate, s.ref_date) <= 4 ? "전일 대비" : `${md(s.ref_date)} 대비`;
 const krw = () => (IBY["KRW=X"] || {}).price || null;
+const IXNAME = { SP500: "S&P 500", NDX: "나스닥 100", SP400: "S&P 400", SP600: "S&P 600", R1000: "러셀 1000", R2000: "러셀 2000", K200: "코스피 200", KQ150: "코스닥 150", ETF: "ETF" };
+const rangeLbl = s => { const d = s.rd ? days(s.qdate, s.rd) : 365; return d >= 330 ? "52주" : `${Math.max(1, Math.round(d / 30))}개월`; };
 /* 종목별 파생 값: 거래량·거래대금·평소 대비 거래량 */
 S.forEach(s => {
   const h = s.h || [], last = h[h.length - 1];
-  s.vol = last && last.length > 5 && iso(last[0]) === s.qdate ? last[5] : null;
-  s.tv = s.vol != null ? s.vol * s.price : null;
+  if (s.vol === undefined) s.vol = last && last.length > 5 && iso(last[0]) === s.qdate ? last[5] : null;
+  s.tv = s.tvFixed != null ? s.tvFixed : s.vol != null ? s.vol * s.price : null;
   s.mkt = s.mkt || "US"; s.cur = s.cur || "USD";
+  if (s.major === "ETF" && !(s.idx || []).includes("ETF")) s.idx = [...(s.idx || []), "ETF"];
   const prev = h.slice(-21, -1).map(r => r[5]).filter(v => v > 0);
-  s.vratio = s.vol != null && prev.length >= 10 ? s.vol / (prev.reduce((a, b) => a + b, 0) / prev.length) : null;
+  const avgv = s.va != null ? s.va : prev.length >= 10 ? prev.reduce((a, b) => a + b, 0) / prev.length : null;
+  s.vratio = s.vol != null && avgv ? s.vol / avgv : null;
   s.pos52 = s.lo != null && s.hi != null && s.hi > s.lo ? (s.price - s.lo) / (s.hi - s.lo) : null;
 });
 S.forEach(s => { s.tvk = s.tv == null ? null : s.cur === "USD" ? s.tv * ((IBY["KRW=X"] || {}).price || 1350) : s.tv; });
@@ -540,7 +592,7 @@ async function initDb() {
 /* ---------- 공통 조각 ---------- */
 function spark(h, cls2 = "spark", n = 60) {
   if (!h || h.length < 2) return "";
-  const cs = h.slice(-n).map(r => r[4]), mn = Math.min(...cs), mx = Math.max(...cs), rg = mx - mn || 1, W = 100, H = 30;
+  const cs = (typeof h[0] === "number" ? h : h.map(r => r[4])).slice(-n), mn = Math.min(...cs), mx = Math.max(...cs), rg = mx - mn || 1, W = 100, H = 30;
   const pts = cs.map((c, i) => `${(i / (cs.length - 1) * W).toFixed(1)},${(H - 2 - (c - mn) / rg * (H - 4)).toFixed(1)}`).join(" ");
   const up = cs[cs.length - 1] >= cs[0];
   return `<svg class="${cls2}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(${up ? "--up" : "--down"})" stroke-width="1.8" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
@@ -550,7 +602,7 @@ function logo(s, sm) {
   const txt = s.mkt === "KR" ? (/^[A-Za-z&]+/.test(s.name) ? s.name.match(/^[A-Za-z&]+/)[0].slice(0, 4) : s.name.slice(0, 2)) : s.t.length > 4 ? s.t.slice(0, 4) : s.t;
   return `<span class="logo${sm ? " sm" : ""}" style="background:#${s.color}" aria-hidden="true">${esc(txt)}${st}</span>`;
 }
-function periodRet(h) { if (!h || h.length < 2) return null; return h[h.length - 1][4] / h[0][4] - 1; }
+function periodRet(h) { if (!h || h.length < 2) return null; const c = x => typeof x === "number" ? x : x[4]; return c(h[h.length - 1]) / c(h[0]) - 1; }
 function lateBadge(s) { return stale(s) ? `<span class="badge warn">${md(s.qdate)} 기준</span>` : ""; }
 /* 종목 한 줄. right: 오른쪽 둘째 줄을 바꿀 때 사용 */
 function rowItem(s, o = {}) {
@@ -566,10 +618,10 @@ function empty(msg, btn) { return `<div class="empty"><div>${msg}</div>${btn || 
 
 /* ---------- 홈 ---------- */
 const BEST = {
-  up:   { label: "상승률", pick: s => s.dchg, dir: -1, same: true, right: s => fmtChg(s.dchg) },
-  down: { label: "하락률", pick: s => s.dchg, dir: 1, same: true, right: s => fmtChg(s.dchg) },
+  up:   { label: "상승률", liq: true, pick: s => s.dchg, dir: -1, same: true, right: s => fmtChg(s.dchg) },
+  down: { label: "하락률", liq: true, pick: s => s.dchg, dir: 1, same: true, right: s => fmtChg(s.dchg) },
   tv:   { label: "거래대금", pick: s => s.tvk, dir: -1, same: true, right: s => `<span class="na">${tvFmt(s)}</span>` },
-  vol:  { label: "거래량 급증", pick: s => s.vratio, dir: -1, same: true, right: s => `<span class="pos">평소 ${s.vratio.toFixed(1)}배</span>` },
+  vol:  { label: "거래량 급증", liq: true, pick: s => s.vratio, dir: -1, same: true, right: s => `<span class="pos">평소 ${s.vratio.toFixed(1)}배</span>` },
   upside: { label: "목표가 여력", pick: s => s.note ? null : s.upside, dir: -1, right: s => fmtPct(s.upside) },
   low:  { label: "52주 저점 근처", pick: s => s.pos52, dir: 1, right: s => `<span class="na">저점 +${((s.price / s.lo - 1) * 100).toFixed(1)}%</span>` },
   div:  { label: "고배당", pick: s => s.div, dir: -1, right: s => `<span class="na">배당 ${(s.div * 100).toFixed(1)}%</span>` },
@@ -578,7 +630,7 @@ const pool = () => S.filter(s => s.mkt === state.hm);
 const recent = s => days(latestOf(s.mkt), s.qdate) <= 4;
 const bestList = (k, n) => {
   const b = BEST[k];
-  return pool().filter(s => b.pick(s) != null && (!b.same || recent(s))).sort((a, c) => (b.pick(a) - b.pick(c)) * b.dir).slice(0, n);
+  return pool().filter(s => b.pick(s) != null && (!b.same || recent(s)) && (!b.liq || (s.tvk || 0) >= 1e9)).sort((a, c) => (b.pick(a) - b.pick(c)) * b.dir).slice(0, n);
 };
 function renderIdx() {
   $("#idx").innerHTML = IX.map(x => {
@@ -638,6 +690,7 @@ function filtered() {
     if (state.mkt === "KR" && s.mkt !== "KR") return false;
     if (state.mkt === "US" && s.mkt !== "US") return false;
     if (state.mkt === "res" && !s.research) return false;
+    if (state.ix && !(s.idx || []).includes(state.ix)) return false;
     if (s.grade ? !state.grades.has(s.grade) : state.grades.size < 3) return false;
     if (state.scen && s.scen !== state.scen) return false;
     if (state.sectors.size && !state.sectors.has(s.major)) return false;
@@ -645,7 +698,7 @@ function filtered() {
     if (f.pe < F0.pe && !(s.fpe != null && s.fpe <= f.pe)) return false;
     if (f.div > 0 && !((s.div || 0) * 100 >= f.div)) return false;
     if (f.off > 0 && !(s.off52 != null && -s.off52 * 100 >= f.off)) return false;
-    if (q && ![s.t, s.name, s.major, s.sub, s.desc, s.rev, s.thesis, my(s.t).memo].join(" ").toLowerCase().includes(q)) return false;
+    if (q && ![s.t, s.name, s.en, s.major, s.sub, s.desc, s.rev, s.thesis, my(s.t).memo].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
   const go = { A: 0, B: 1, C: 2 }, nz = (v, d) => v == null ? d : v;
@@ -666,6 +719,12 @@ function filtered() {
   }[state.sort] || (() => 0);
   return arr.sort(cmp);
 }
+let obs = null;
+function moreObs() {
+  if (!("IntersectionObserver" in window)) return;
+  if (!obs) obs = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && state.tab === "stocks") { state.limit += 100; renderStocks(); } }, { rootMargin: "600px" });
+  obs.disconnect(); const b = $("#more"); if (b) obs.observe(b);
+}
 function mineLine(s) {
   const m = my(s.t), out = [];
   if (m.buy) { const g = s.price / m.buy - 1; out.push(g <= 0 ? `<span class="hit">매수 희망가 ${M(s, m.buy)} 도달</span>` : `매수 희망가 ${M(s, m.buy)}까지 <b>${(g * 100).toFixed(1)}%</b>`); }
@@ -674,12 +733,12 @@ function mineLine(s) {
   return out.length ? `<div class="mine">${out.map(x => `<div>${x}</div>`).join("")}</div>` : "";
 }
 function card(s) {
-  const pr = periodRet(s.h);
+  const hh = s.h || s.spv || [], pr = periodRet(hh);
   return `<article class="card" data-open="${esc(s.t)}">
     <div class="chead">${logo(s)}<div style="min-width:0"><div class="n">${esc(s.name)}</div><div class="s">${esc(s.t)} · ${esc(s.sub)}</div></div>${s.grade ? `<span class="grade g-${s.grade}" title="종합등급">${s.grade}</span>` : `<span class="badge">${esc(s.ex)}</span>`}</div>
     <div class="px"><div><div class="big">${M(s, s.price)}</div><div class="chg">${fmtChg(s.dchg)} <span class="na" style="font-size:12px">${refLabel(s)}</span></div>
       <div class="asof">${md(s.qdate)} 종가 ${lateBadge(s)}${s.note ? '<span class="badge alert">인수 진행</span>' : ""}</div></div>
-      <div style="display:grid;justify-items:end;gap:2px">${spark(s.h)}<span class="na" style="font-size:11.5px">${s.h.length}일 ${pr == null ? "" : fmtPct(pr)}</span></div></div>
+      <div style="display:grid;justify-items:end;gap:2px">${spark(hh)}<span class="na" style="font-size:11.5px">${hh.length}일 ${pr == null ? "" : fmtPct(pr)}</span></div></div>
     <p class="desc">${esc(s.desc)}</p>
     <div class="mets">
       <div class="m"><span class="k">목표가 여력</span><span class="v">${fmtPct(s.upside)}</span></div>
@@ -704,26 +763,34 @@ function table(arr) {
     <td class="r">${fmtChg(s.dchg)}</td><td class="r">${tvFmt(s)}</td><td class="r">${fmtPct(s.upside)}</td>
     <td class="r">${fmtPct(s.msdisc, false)}</td><td class="r">${fmtX(s.fpe)}</td>
     <td class="r">${s.div == null ? '<span class="na">—</span>' : (s.div * 100).toFixed(1) + "%"}</td>
-    <td class="r">${fmtPct(s.off52)}</td><td class="r">${fmtPct(s.chg)}</td><td style="width:80px">${spark(s.h, "spark", 60).replace('class="spark"', 'class="spark" style="width:72px;height:26px"')}</td><td>${esc(s.scen)}</td></tr>`).join("");
+    <td class="r">${fmtPct(s.off52)}</td><td class="r">${fmtPct(s.chg)}</td><td style="width:80px">${spark(s.h || s.spv, "spark", 60).replace('class="spark"', 'class="spark" style="width:72px;height:26px"')}</td><td>${esc(s.scen)}</td></tr>`).join("");
   return `<div class="tablewrap"><table><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function renderStocks() {
-  const arr = filtered();
+  let arr = filtered();
   state.list = arr.map(s => s.t);
-  $("#count").textContent = `${arr.length}개 종목`;
-  const active = state.q || state.scen || state.sectors.size || state.grades.size < 3 || JSON.stringify(state.f) !== JSON.stringify(F0);
+  const total = arr.length; arr = arr.slice(0, state.limit);
+  $("#count").textContent = `${total.toLocaleString("ko-KR")}개 종목`;
+  const active = state.q || state.ix || state.scen || state.sectors.size || state.grades.size < 3 || JSON.stringify(state.f) !== JSON.stringify(F0);
   $("#reset").hidden = !active;
   const rights = { tv: s => `<span class="na">${tvFmt(s)}</span>`, upside: s => fmtPct(s.upside), msdisc: s => `<span class="na">할인 ${s.msdisc == null ? "—" : (s.msdisc * 100).toFixed(1) + "%"}</span>`,
     div: s => `<span class="na">배당 ${s.div == null ? "—" : (s.div * 100).toFixed(1) + "%"}</span>`, fpe: s => `<span class="na">PER ${s.fpe == null ? "—" : s.fpe.toFixed(1)}</span>`,
-    off52: s => fmtPct(s.off52), chg: s => `<span class="na">주간</span> ${fmtPct(s.chg)}`, mcap: s => `<span class="na">${fmtCap(s.mcap)}</span>` };
+    off52: s => fmtPct(s.off52), chg: s => `<span class="na">주간</span> ${fmtPct(s.chg)}`, mcap: s => `<span class="na">${fmtCap(s.mcap, s.cur)}</span>` };
   const rf = rights[state.sort];
   $("#list").innerHTML = !arr.length ? `<div class="box">${empty("조건에 맞는 종목이 없습니다. 필터를 넓혀 보세요.")}</div>`
     : state.view === "card" ? `<div class="grid">${arr.map(card).join("")}</div>`
     : state.view === "table" ? table(arr)
     : `<div class="box tight"><div class="rows">${arr.map(s => rowItem(s, rf ? { right: rf(s) } : {})).join("")}</div></div>`;
+  if (total > arr.length) $("#list").insertAdjacentHTML("beforeend", `<button type="button" class="btn" id="more" style="width:100%;margin-top:10px">더 보기 (${(total - arr.length).toLocaleString("ko-KR")}개 남음)</button>`);
+  moreObs();
   document.querySelectorAll("#view button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.view));
   document.querySelectorAll("#mkt button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mk === state.mkt));
-  const nAct = (state.scen ? 1 : 0) + (state.grades.size < 3 ? 1 : 0) + (JSON.stringify(state.f) !== JSON.stringify(F0) ? 1 : 0) + (state.sort !== "tv" ? 1 : 0);
+  const IXL = [["", "모든 지수"], ["SP500", "S&P 500"], ["NDX", "나스닥 100"], ["SP400", "S&P 400"], ["SP600", "S&P 600"], ["R1000", "러셀 1000"], ["R2000", "러셀 2000"], ["K200", "코스피 200"], ["KQ150", "코스닥 150"], ["ETF", "ETF"]]
+    .filter(([k]) => !k || S.some(s => (s.idx || []).includes(k)));
+  $("#ixchips").hidden = IXL.length < 3;
+  $("#ixchips").innerHTML = IXL.map(([k, l]) => `<button type="button" class="chip" data-ixc="${k}" aria-pressed="${state.ix === k}">${l}</button>`).join("");
+  $("#ixf").value = state.ix;
+  const nAct = (state.ix ? 1 : 0) + (state.scen ? 1 : 0) + (state.grades.size < 3 ? 1 : 0) + (JSON.stringify(state.f) !== JSON.stringify(F0) ? 1 : 0) + (state.sort !== "tv" ? 1 : 0);
   $("#obtn").textContent = nAct ? `필터·정렬 ${nAct}` : "필터·정렬";
   $("#sort").value = state.sort;
 }
@@ -913,13 +980,13 @@ function starBtn(s) {
   const on = !!my(s.t).star;
   return `<button type="button" class="icon star dstar" data-star="${esc(s.t)}" aria-pressed="${on}" aria-label="관심 종목 ${on ? "해제" : "추가"}">${on ? STAR : STAR_O}</button>`;
 }
-function chartPanel(h, hasVol) {
+function chartPanel(h, hasVol, lineOnly) {
   return `<section class="box">
-    <div class="ctop"><div class="seg" id="ctype"><button type="button" data-c="line">라인</button><button type="button" data-c="candle">캔들</button></div>
+    <div class="ctop">${lineOnly ? '<span class="na" style="font-size:12.5px">일별 종가 라인</span>' : '<div class="seg" id="ctype"><button type="button" data-c="line">라인</button><button type="button" data-c="candle">캔들</button></div>'}
       <div class="seg" id="rng"><button type="button" data-r="5">1주</button><button type="button" data-r="22">1달</button><button type="button" data-r="66">3달</button><button type="button" data-r="all">전체</button></div></div>
     <div class="legend" id="legend"></div>
     <div id="chart" role="img" aria-label="일봉 차트"></div>
-    <div class="ctop"><div class="malgd">${[[5, "--ma1"], [20, "--ma2"], [60, "--ma3"]].map(([n, c]) => `<label><input type="checkbox" data-ma="${n}" ${state.ma[n] ? "checked" : ""} ${h.length < n ? "disabled" : ""}><i style="background:var(${c})"></i>${n}일선</label>`).join("")}</div>
+    <div class="ctop">${lineOnly ? "<span></span>" : ""}<div class="malgd" ${lineOnly ? "hidden" : ""}>${[[5, "--ma1"], [20, "--ma2"], [60, "--ma3"]].map(([n, c]) => `<label><input type="checkbox" data-ma="${n}" ${state.ma[n] ? "checked" : ""} ${h.length < n ? "disabled" : ""}><i style="background:var(${c})"></i>${n}일선</label>`).join("")}</div>
       <span class="cnote">${hasVol ? "아래 막대 = 거래량 · " : ""}일봉 ${h.length}개 (${md(iso(h[0][0]))}~${md(iso(h[h.length - 1][0]))})</span></div>
   </section>`;
 }
@@ -936,23 +1003,28 @@ function detailHtml(s) {
     <div class="asof">${esc(s.qdate)} 종가 · 실시간 아님 ${lateBadge(s)}${krw() && s.cur === "USD" ? `<span>· 약 ${fmtKrw(s.price * krw())}</span>` : ""}</div>
   </div>
   ${s.note ? `<div class="alertbox">⚠ ${esc(s.note)}</div>` : ""}
-  ${h.length ? chartPanel(h, h.some(r => r.length > 5)) : ""}
+  ${h.length ? chartPanel(h, h.some(r => r.length > 5 && r[5] > 0), s.lineOnly) : `<section class="box">${empty("차트 자료를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.")}</section>`}
   <section class="box">${liveLinks(s.t)}</section>
   <section class="box">
     <div class="bh"><h2>시세 정보</h2></div>
     <div class="kv">
       <div><span class="k">거래량</span><span class="v">${s.vol ? fmtBig(s.vol) + (s.vratio ? ` <span class="na">(평소 ${s.vratio.toFixed(1)}배)</span>` : "") : "—"}</span></div>
       <div><span class="k">거래대금</span><span class="v">${tvFmt(s)}</span></div>
-      <div><span class="k">시가총액</span><span class="v">${s.cur === "KRW" ? "—" : fmtCap(s.mcap)}</span></div>
-      <div><span class="k">52주 고점 대비</span><span class="v">${fmtPct(s.off52)}</span></div>
+      <div><span class="k">시가총액</span><span class="v">${fmtCap(s.mcap, s.cur)}</span></div>
+      <div><span class="k">${rangeLbl(s)} 고점 대비</span><span class="v">${fmtPct(s.off52)}</span></div>
       <div><span class="k">차트 기간 최고</span><span class="v">${M(s, hi)}</span></div>
       <div><span class="k">차트 기간 최저</span><span class="v">${M(s, lo)}</span></div>
     </div>
     ${rangeBar}
   </section>
   <section class="box">
-    <div class="bh"><h2>투자 지표</h2><span class="sub">${s.research ? "애널리스트 · 모닝스타" : "애널리스트"}</span></div>
-    ${!s.research ? `<div class="kv">
+    <div class="bh"><h2>${s.univ ? "종목 정보" : "투자 지표"}</h2><span class="sub">${s.research ? "애널리스트 · 모닝스타" : s.univ ? "" : "애널리스트"}</span></div>
+    ${s.univ ? `<div class="kv">
+      <div><span class="k">시장</span><span class="v">${esc(s.mkt === "KR" ? s.ex : "미국 " + s.ex)}</span></div>
+      <div><span class="k">섹터</span><span class="v">${esc(s.major)}</span></div>
+      <div><span class="k">편입 지수</span><span class="v">${(s.idx || []).map(k => IXNAME[k] || k).join(" · ") || "—"}</span></div>
+      <div><span class="k">${rangeLbl(s)} 최고 · 최저</span><span class="v">${M(s, s.hi)} · ${M(s, s.lo)}</span></div>
+    </div><p class="note">${s.ind ? "업종: " + esc(s.ind) + ". " : ""}이 종목은 전체 시장 목록에서 온 것이라 애널리스트 목표가·PER·저평가 리서치는 없습니다. 자세한 지표는 위 링크에서 보세요.</p>` : !s.research ? `<div class="kv">
       <div><span class="k">애널리스트 의견</span><span class="v">${esc(s.rating || "—")}</span></div>
       <div><span class="k">평균 목표가</span><span class="v">${s.tgt ? M(s, s.tgt) + " " + fmtPct(s.upside) : "—"}</span></div>
       <div><span class="k">PER · 예상 PER</span><span class="v">${fmtX(s.pe)} · ${fmtX(s.fpe)}</span></div>
@@ -1023,9 +1095,15 @@ function calc() {
   if (m.cost && s.tgt) out.push(`평단 대비 목표가 ${fmtPct(s.tgt / m.cost - 1)}`);
   el.innerHTML = out.map(x => `<span>${x}</span>`).join("");
 }
-function openDetail(t) {
+async function openDetail(t) {
   const s = BY[t]; if (!s) return;
   state.cur = t; state.curKind = "stock";
+  if (!s.h && window.__loadHist) {
+    $("#dbody").innerHTML = headBar("stock", t) + `<div class="empty">${esc(s.name)} 차트 불러오는 중…</div>`;
+    if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } }
+    try { s.h = await window.__loadHist(t); } catch (e) { s.h = []; }
+    if (state.cur !== t) return;
+  }
   $("#dbody").innerHTML = detailHtml(s);
   if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } }
   dlg.scrollTop = 0; chartBtns(); calc(); drawChart();
@@ -1067,6 +1145,8 @@ const pfmt = p => state.curKind === "index" ? fmtNum(p, Math.abs(p) < 100 ? 3 : 
 function legend(b, prev) {
   const el = $("#legend"); if (!el || !b) return;
   const c = prev ? b.close / prev.close - 1 : null;
+  const lineOnly = state.curKind === "stock" && (BY[state.cur] || {}).lineOnly;
+  if (lineOnly) { el.innerHTML = `<span>${b.time}</span><span><span class="k">종가</span> <b>${pfmt(b.close)}</b></span>${c == null ? "" : `<span>${fmtChg(c)}</span>`}${b.vol ? `<span><span class="k">거래량</span> ${fmtBig(b.vol)}</span>` : ""}`; return; }
   el.innerHTML = `<span>${b.time}</span><span><span class="k">시</span> ${pfmt(b.open)}</span><span><span class="k">고</span> ${pfmt(b.high)}</span><span><span class="k">저</span> ${pfmt(b.low)}</span><span><span class="k">종</span> <b class="${b.close >= b.open ? "pos" : "neg"}">${pfmt(b.close)}</b></span>${c == null ? "" : `<span>${fmtChg(c)}</span>`}${b.vol ? `<span><span class="k">거래량</span> ${fmtBig(b.vol)}</span>` : ""}`;
 }
 function applyRange() {
@@ -1108,7 +1188,7 @@ async function drawChart() {
     handleScale: { axisPressedMouseMove: true }, handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false }
   });
   const ret = lastBar.close >= chartBars[0].close;
-  if (state.ctype === "line") {
+  if (state.ctype === "line" || obj.lineOnly) {
     const lc = ret ? up : dn;
     chartMain = chart.addAreaSeries({ lineColor: lc, lineWidth: 2, topColor: lc + "33", bottomColor: lc + "00", priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 4 });
     chartMain.setData(chartBars.map(b => ({ time: b.time, value: b.close })));
@@ -1175,11 +1255,13 @@ document.addEventListener("click", e => {
   if (g) { const v = g.dataset.g; if (state.grades.has(v) && state.grades.size > 1) state.grades.delete(v); else state.grades.add(v);
     g.setAttribute("aria-pressed", state.grades.has(v)); renderStocks(); return; }
   const v = e.target.closest("#view button"); if (v) { state.view = v.dataset.v; LS.set("wl-view2", state.view); renderStocks(); return; }
+  const ixc = e.target.closest("[data-ixc]"); if (ixc) { state.ix = ixc.dataset.ixc; state.limit = 100; renderStocks(); return; }
+  if (e.target.closest("#more")) { state.limit += 200; renderStocks(); return; }
   if (e.target.closest("#fbtn")) { const f = $("#filters"); f.hidden = !f.hidden; $("#fbtn").setAttribute("aria-expanded", !f.hidden); return; }
   if (e.target.closest("#obtn")) { sheet(true); return; }
   if (e.target.closest("#cclose, #capply, #scrim")) { sheet(false); return; }
   if (e.target.closest("#reset, #reset2")) {
-    Object.assign(state, { q: "", scen: "", sort: "tv", f: { ...F0 } }); state.grades = new Set(["A","B","C"]); state.sectors.clear();
+    Object.assign(state, { q: "", scen: "", ix: "", sort: "tv", f: { ...F0 }, limit: 100 }); $("#ixf").value = ""; state.grades = new Set(["A","B","C"]); state.sectors.clear();
     $("#q").value = ""; $("#scen").value = ""; ["fu","fp","fd","fo"].forEach((id, i) => $("#" + id).value = [F0.up, F0.pe, F0.div, F0.off][i]);
     document.querySelectorAll("#grades button").forEach(b => b.setAttribute("aria-pressed", "true")); fLabels(); chips(); renderStocks(); return;
   }
@@ -1219,10 +1301,12 @@ dlg.addEventListener("change", e => {
   const cb = e.target.closest("[data-ma]"); if (!cb) return;
   state.ma = { ...state.ma, [cb.dataset.ma]: cb.checked }; LS.set("wl-ma", state.ma); drawChart();
 });
-$("#q").addEventListener("input", e => { state.q = e.target.value; renderStocks(); });
-$("#scen").addEventListener("change", e => { state.scen = e.target.value; renderStocks(); });
-$("#sort").addEventListener("change", e => { state.sort = e.target.value; renderStocks(); });
+$("#q").addEventListener("input", e => { state.q = e.target.value; state.limit = 100; renderStocks(); });
+$("#scen").addEventListener("change", e => { state.scen = e.target.value; state.limit = 100; renderStocks(); });
+$("#ixf").addEventListener("change", e => { state.ix = e.target.value; state.limit = 100; renderStocks(); });
+$("#sort").addEventListener("change", e => { state.sort = e.target.value; state.limit = 100; renderStocks(); });
 [["fu", "up"], ["fp", "pe"], ["fd", "div"], ["fo", "off"]].forEach(([id, k]) => $("#" + id).addEventListener("input", e => { state.f[k] = +e.target.value; fLabels(); renderStocks(); }));
 
+[...$("#ixf").options].forEach(o => { if (o.value && !S.some(x => (x.idx || []).includes(o.value))) o.remove(); });
 chips(); fLabels(); renderAll(); setTab(state.tab, false); initDb(); initSample();
 </script>

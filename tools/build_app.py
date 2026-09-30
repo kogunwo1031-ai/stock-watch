@@ -22,6 +22,12 @@ extra = open(os.path.join(HERE, "app_extra.js"), encoding="utf-8").read()
 app_js = "(() => {\n" + js + "\n" + extra + "\n})();\n"
 open(os.path.join(SITE, "app.js"), "w", encoding="utf-8").write(app_js)
 json.dump(data, open(os.path.join(SITE, "data.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+# 종목별 일봉 묶음(상세 화면에서 필요할 때 불러옴)
+dst = os.path.join(SITE, "hchunks"); os.makedirs(dst, exist_ok=True)
+for f in os.listdir(dst): os.remove(os.path.join(dst, f))
+src = os.path.join(HERE, "hchunks")
+if os.path.isdir(src):
+    for f in os.listdir(src): shutil.copy(os.path.join(src, f), os.path.join(dst, f))
 
 ver = hashlib.sha1((app_js + markup).encode()).hexdigest()[:10]
 index = f"""<!doctype html>
