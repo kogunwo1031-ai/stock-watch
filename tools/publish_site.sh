@@ -10,7 +10,7 @@ cp -r "$REPO_DIR/site/." "$TMP/"
 rm -rf "$TMP/data" "$TMP/vendor"
 test "$(ls "$TMP/hchunks" | wc -l)" -eq 96 || { echo "hchunks 96개가 아님"; exit 1; }
 node --check "$TMP/app.js"
-mkdir -p "$TMP/.github/workflows" && cp "$REPO_DIR/.github/workflows/pages.yml" "$TMP/.github/workflows/pages.yml"   # 이 브랜치에 올릴 때 배포가 돌도록
+mkdir -p "$TMP/.github/workflows" && cp "$REPO_DIR/tools/data_arrived.yml" "$TMP/.github/workflows/data_arrived.yml"   # 올리면 main의 배포가 이어서 돈다
 cd "$TMP"
 git init -q -b site-data
 git config user.name Claude; git config user.email noreply@anthropic.com

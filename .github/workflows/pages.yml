@@ -4,7 +4,10 @@ name: 웹 앱 배포
 
 on:
   push:
-    branches: [main, site-data]
+    branches: [main]
+  workflow_run:
+    workflows: ["데이터 도착"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
