@@ -1,0 +1,10 @@
+# site-data 브랜치에 새 데이터가 올라왔음을 알리는 신호용(내용 없음). main의 '웹 앱 배포'가 이것을 보고 배포합니다.
+name: 데이터 도착
+on:
+  push:
+    branches: [site-data]
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "새 데이터 도착"

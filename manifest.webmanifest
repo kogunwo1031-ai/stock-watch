@@ -1,0 +1,30 @@
+{
+ "name": "저평가 우량주 워치리스트",
+ "short_name": "저평가 워치",
+ "lang": "ko",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#F3F5F7",
+ "theme_color": "#1F3864",
+ "description": "저평가 우량주 86종목 · 일봉 차트 · 관심종목과 메모",
+ "icons": [
+  {
+   "src": "icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
