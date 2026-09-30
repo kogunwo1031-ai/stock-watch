@@ -1,0 +1,25 @@
+# 차트 라이브러리(lightweight-charts 4.2.0)를 저장소에 넣어 둡니다. 한 번만 돌면 됩니다.
+name: 차트 라이브러리 가져오기
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/vendor.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          mkdir -p /tmp/lw && cd /tmp/lw && npm pack lightweight-charts@4.2.0 --silent && tar xzf lightweight-charts-4.2.0.tgz
+          mkdir -p "$GITHUB_WORKSPACE/tools/vendor"
+          cp package/dist/lightweight-charts.standalone.production.js "$GITHUB_WORKSPACE/tools/vendor/lightweight-charts.js"
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add tools/vendor/lightweight-charts.js
+          git diff --cached --quiet || (git commit -m "차트 라이브러리 lightweight-charts 4.2.0 추가" && git push)
