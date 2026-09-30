@@ -1,0 +1,42 @@
+# 웹 앱(site/)을 GitHub Pages에 올립니다. site/ 가 바뀌면 자동 실행.
+name: 웹 앱 배포
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 차트 라이브러리 내려받기 (lightweight-charts 4.2.0)
+        run: |
+          mkdir -p /tmp/lw && cd /tmp/lw
+          npm pack lightweight-charts@4.2.0 --silent
+          tar xzf lightweight-charts-4.2.0.tgz
+          mkdir -p "$GITHUB_WORKSPACE/site/vendor"
+          cp package/dist/lightweight-charts.standalone.production.js "$GITHUB_WORKSPACE/site/vendor/lightweight-charts.js"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

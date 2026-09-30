@@ -1,0 +1,11 @@
+*.xlsx
+tools/prev_quotes.csv
+tools/dashboard.html
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
+__pycache__/
+site/vendor/*.js

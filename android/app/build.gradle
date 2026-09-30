@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 앱이 여는 주소와 버전은 빌드할 때 GitHub Actions가 넣어 줍니다.
+def appUrl = System.getenv("APP_URL") ?: "https://example.github.io/stock-watch/"
+def vCode = Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")
+
+android {
+    namespace 'kr.stockwatch.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "kr.stockwatch.app"
+        minSdk 24
+        targetSdk 34
+        versionCode vCode
+        versionName "1.0." + vCode
+        resValue "string", "app_url", appUrl
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv("KEYSTORE_PATH")
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("KEYSTORE_PASS")
+                keyAlias "stockwatch"
+                keyPassword System.getenv("KEYSTORE_PASS")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
