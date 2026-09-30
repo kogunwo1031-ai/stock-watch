@@ -2,9 +2,8 @@
 (function appExtra() {
   const css = document.createElement("style");
   css.textContent = `
-  header.top { position: relative; padding-right: 48px }
-  #appmenu-btn { position: absolute; right: 0; top: 0 }
-  .amenu { position: absolute; right: 0; top: 42px; z-index: 60; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.2); min-width: 210px; padding: 6px; display: grid }
+  #appmenu-btn { justify-self: end }
+  .amenu { position: fixed; right: 12px; top: calc(56px + env(safe-area-inset-top)); z-index: 60; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.2); min-width: 210px; padding: 6px; display: grid }
   .amenu[hidden] { display: none }
   .amenu button { text-align: left; border: 0; background: none; padding: 11px 12px; border-radius: 8px; font-size: 14px }
   .amenu button:hover { background: var(--surface-2) }

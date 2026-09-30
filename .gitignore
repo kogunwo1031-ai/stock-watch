@@ -9,3 +9,6 @@ android/local.properties
 *.keystore
 __pycache__/
 site/vendor/*.js
+tools/data.json
+tools/incoming/
+tools/dashboard_template.txt

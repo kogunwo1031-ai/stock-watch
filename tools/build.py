@@ -402,9 +402,30 @@ for d in view_rows:
                                        "pe","fpe","div","rating","tgt","fv","moat","unc","val","thesis","risk","mdate","lo","hi")}
                 | {"upside": pct(d["tgt"], d["price"]), "msdisc": msd, "off52": pct(d["price"], d["hi"]),
                    "chg": pct(d["price"], d["prev"]), "prevdate": d["prevdate"], "color": SECTOR_COLOR[d["major"]],
-                   "dchg": pct(d["price"], d["ref_close"]), "ref_date": d["ref_date"], "src_price": d["src_price"],
+                   "dchg": pct(d["price"], d["ref_close"]), "diff": (d["price"] - d["ref_close"]) if d["ref_close"] else None, "ref_date": d["ref_date"], "src_price": d["src_price"],
                    "note": d.get("note"), "h": d["h"]})
-json.dump({"updated": RUN_DATE, "quote_date": max(d["qdate"] for d in rows), "stocks": dash,
+# 시장 지수(코스피·나스닥 등): indices.json → 최근 150거래일
+INDEX_META = [  # 기호, 이름, 짧은 이름, 지역, 단위, 실시간 링크
+    ("^KS11", "코스피", "코스피", "국내", "pt", "https://finance.yahoo.com/quote/%5EKS11/"),
+    ("^KQ11", "코스닥", "코스닥", "국내", "pt", "https://finance.yahoo.com/quote/%5EKQ11/"),
+    ("^IXIC", "나스닥 종합", "나스닥", "미국", "pt", "https://finance.yahoo.com/quote/%5EIXIC/"),
+    ("^GSPC", "S&P 500", "S&P 500", "미국", "pt", "https://finance.yahoo.com/quote/%5EGSPC/"),
+    ("^DJI", "다우존스", "다우", "미국", "pt", "https://finance.yahoo.com/quote/%5EDJI/"),
+    ("^SOX", "필라델피아 반도체", "반도체(SOX)", "미국", "pt", "https://finance.yahoo.com/quote/%5ESOX/"),
+    ("KRW=X", "달러/원 환율", "달러 환율", "환율", "원", "https://finance.yahoo.com/quote/KRW%3DX/"),
+    ("^TNX", "미국 10년물 국채 금리", "美 10년물", "금리", "%", "https://finance.yahoo.com/quote/%5ETNX/"),
+    ("^VIX", "VIX 변동성지수", "VIX", "변동성", "pt", "https://finance.yahoo.com/quote/%5EVIX/"),
+]
+IDX = json.load(open("indices.json")) if os.path.exists("indices.json") else {}
+indices = []
+for sym, nm, short, region, unit, url in INDEX_META:
+    h = IDX.get(sym, [])[-150:]
+    if len(h) < 2: continue
+    indices.append({"sym": sym, "name": nm, "short": short, "region": region, "unit": unit, "url": url, "h": h,
+                    "price": h[-1][4], "qdate": iso(h[-1][0]), "ref_close": h[-2][4], "ref_date": iso(h[-2][0]),
+                    "dchg": h[-1][4] / h[-2][4] - 1, "diff": h[-1][4] - h[-2][4]})
+
+json.dump({"updated": RUN_DATE, "quote_date": max(d["qdate"] for d in rows), "stocks": dash, "indices": indices,
            "sector_guide": R["sector_guide"], "sector_colors": SECTOR_COLOR},
           open("data.json", "w", encoding="utf-8"), ensure_ascii=False)
 print(out, len(rows), "종목")

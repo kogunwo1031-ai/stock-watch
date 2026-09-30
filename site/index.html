@@ -9,312 +9,409 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-180.png">
-<title>저평가 우량주 워치리스트</title>
+<title>저평가 워치</title>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
 <style>
-/* 개인용 워치리스트: 요약 → 필터(고정) → 카드/표 → 섹터 가이드. 종목을 누르면 오른쪽 패널에 일봉 캔들 차트·지표·내 메모.
-   숫자는 모노 서체. 등락 색은 국내식(상승 빨강·하락 파랑)이 기본이며 미국식으로 바꿀 수 있음. */
+/* 증권 앱형 레이아웃: 위 앱 바 → 탭별 화면(홈·종목·관심·내 투자·더보기) → 아래 탭 바(모바일) / 위 탭(PC).
+   홈 = 지수 띠 + 시장 등락 + BEST 순위 + 섹터 등락 + 내 관심 미리보기. 종목을 누르면 상세(차트·거래량·지표·내 기록).
+   등락 색은 국내식(상승 빨강·하락 파랑) 기본. 숫자는 같은 서체의 고정폭 숫자. */
 :root {
-  --bg: #F3F5F7; --surface: #FFFFFF; --surface-2: #EEF1F4; --fg: #15202B; --muted: #5A6875; --line: #D8DFE6;
-  --ink: #1F3864; --good: #1B7A43; --good-bg: #E3F2E8; --warn-bg: #FFF2C7; --warn: #7A5A00; --alert-bg: #FDECEA; --alert: #9A1C14;
-  --c-bg: #E9ECEF; --c-fg: #4D5761; --star: #E0A100;
-  --up: #D62D2D; --down: #1F5FCC;
-  --ma1: #E08A00; --ma2: #7A3FC2; --ma3: #0E8C7A;
-  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --r: 10px;
+  --bg: #F2F4F6; --surface: #FFFFFF; --surface-2: #F2F4F6; --surface-3: #E8EBEE; --fg: #191F28; --fg-2: #333D4B; --muted: #8B95A1; --line: #E5E8EB;
+  --accent: #3182F6; --accent-bg: #E8F3FF; --ink: #3182F6;
+  --good: #1B7A43; --good-bg: #E3F2E8; --warn-bg: #FFF2C7; --warn: #7A5A00; --alert-bg: #FDECEA; --alert: #B42318;
+  --c-bg: #EEF0F3; --c-fg: #4E5968; --star: #FFB800;
+  --up: #F04452; --down: #3182F6;
+  --ma1: #F59E0B; --ma2: #8B5CF6; --ma3: #10B981; --vol: rgba(139, 149, 161, .45);
+  --font: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --r: 20px; --r-sm: 12px;
+  --shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-:root[data-updown="us"] { --up: #1B7A43; --down: #C62828 }
+:root[data-updown="us"] { --up: #16A34A; --down: #F04452 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0F151B; --surface: #172029; --surface-2: #1E2933; --fg: #E6ECF1; --muted: #93A2AF; --line: #2A3743;
-  --ink: #9DB8E8; --good: #6FD39A; --good-bg: #173524; --warn-bg: #3A3013; --warn: #F1CE6B; --alert-bg: #3A1A18; --alert: #FFB4AB;
-  --c-bg: #26313B; --c-fg: #B5C0CA; --star: #F5C542; --up: #FF6B6B; --down: #6FA8FF;
-  --ma1: #FFB547; --ma2: #B98CFF; --ma3: #4FD1BC; color-scheme: dark }
-  :root:not([data-theme="light"])[data-updown="us"] { --up: #6FD39A; --down: #FF8A80 } }
+  --bg: #101013; --surface: #1B1B20; --surface-2: #232329; --surface-3: #2C2C35; --fg: #F2F4F6; --fg-2: #D1D6DB; --muted: #8B95A1; --line: #2C2C35;
+  --accent: #4C9AFF; --accent-bg: #1B2B45; --ink: #4C9AFF;
+  --good: #6FD39A; --good-bg: #173524; --warn-bg: #3A3013; --warn: #F1CE6B; --alert-bg: #3A1A18; --alert: #FFB4AB;
+  --c-bg: #2C2C35; --c-fg: #B0B8C1; --star: #FFC933; --up: #FF5B67; --down: #4C9AFF; --vol: rgba(139, 149, 161, .35); color-scheme: dark }
+  :root:not([data-theme="light"])[data-updown="us"] { --up: #4ADE80; --down: #FF5B67 } }
 :root[data-theme="dark"] {
-  --bg: #0F151B; --surface: #172029; --surface-2: #1E2933; --fg: #E6ECF1; --muted: #93A2AF; --line: #2A3743;
-  --ink: #9DB8E8; --good: #6FD39A; --good-bg: #173524; --warn-bg: #3A3013; --warn: #F1CE6B; --alert-bg: #3A1A18; --alert: #FFB4AB;
-  --c-bg: #26313B; --c-fg: #B5C0CA; --star: #F5C542; --up: #FF6B6B; --down: #6FA8FF;
-  --ma1: #FFB547; --ma2: #B98CFF; --ma3: #4FD1BC; color-scheme: dark }
-:root[data-theme="dark"][data-updown="us"] { --up: #6FD39A; --down: #FF8A80 }
+  --bg: #101013; --surface: #1B1B20; --surface-2: #232329; --surface-3: #2C2C35; --fg: #F2F4F6; --fg-2: #D1D6DB; --muted: #8B95A1; --line: #2C2C35;
+  --accent: #4C9AFF; --accent-bg: #1B2B45; --ink: #4C9AFF;
+  --good: #6FD39A; --good-bg: #173524; --warn-bg: #3A3013; --warn: #F1CE6B; --alert-bg: #3A1A18; --alert: #FFB4AB;
+  --c-bg: #2C2C35; --c-fg: #B0B8C1; --star: #FFC933; --up: #FF5B67; --down: #4C9AFF; --vol: rgba(139, 149, 161, .35); color-scheme: dark }
+:root[data-theme="dark"][data-updown="us"] { --up: #4ADE80; --down: #FF5B67 }
 
-* { box-sizing: border-box }
-.wrap > * { min-width: 0 }
-body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.5; margin: 0 }
-.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 18px }
-.num { font-family: var(--font-num); font-variant-numeric: tabular-nums }
-a { color: inherit }
-button, select, input, textarea { font: inherit; color: inherit }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
+html { scroll-padding-top: 70px }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.5; margin: 0; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums; padding-bottom: calc(66px + env(safe-area-inset-bottom)) }
+a { color: inherit; text-decoration: none }
+button, select, input, textarea { font: inherit; color: inherit; letter-spacing: inherit }
 button { cursor: pointer }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.num { font-variant-numeric: tabular-nums }
 .na { color: var(--muted); font-weight: 400 }
 .pos { color: var(--up) } .neg { color: var(--down) }
 
-header.top { display: grid; gap: 8px }
-h1 { font-weight: 700; font-size: clamp(22px, 3.2vw, 30px); margin: 0; letter-spacing: -0.01em; text-wrap: balance }
-.meta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center }
-.meta b { color: var(--fg); font-weight: 600 }
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 12px }
-.pill .d { width: 7px; height: 7px; border-radius: 50%; background: var(--muted) }
-.pill.ok .d { background: var(--good) }
-.notice { font-size: 12.5px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--ink); border-radius: 8px; padding: 8px 12px }
+/* 앱 바 */
+header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px; max-width: 1000px; margin: 0 auto }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0 }
+.brand b { font-size: 20px; font-weight: 800; letter-spacing: -0.03em }
+.brand span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 4px 16px 32px; display: grid; gap: 12px }
+.wrap > * { min-width: 0 }
+.view { display: grid; gap: 12px; min-width: 0 }
+.view[hidden] { display: none }
 
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px }
-.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 2px; min-width: 0 }
-.stat .k { font-size: 12px; color: var(--muted) }
-.stat .v { font-family: var(--font-num); font-size: 19px; font-weight: 600; line-height: 1.3 }
-.stat .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.box { background: var(--surface); border-radius: var(--r); padding: 20px; display: grid; gap: 14px; min-width: 0; box-shadow: var(--shadow) }
+.box.tight { padding: 16px 0 8px }
+.box.tight > .bh { padding: 0 20px }
+.bh { display: flex; justify-content: space-between; align-items: baseline; gap: 10px }
+.bh h2 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.03em }
+.bh .sub { font-size: 12.5px; color: var(--muted) }
+.more { border: 0; background: none; color: var(--muted); font-size: 13.5px; padding: 0; white-space: nowrap }
+.more:hover { color: var(--fg) }
 
-.bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--line) }
-.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
-.search { flex: 1 1 220px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface) }
-select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); max-width: 100% }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); flex: none }
-.seg button { border: 0; background: none; padding: 7px 11px; font-size: 13px; white-space: nowrap }
-.seg button + button { border-left: 1px solid var(--line) }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface) }
-.seg.sm button { padding: 3px 9px; font-size: 12px }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 11px; font-size: 13px; white-space: nowrap }
-.btn[aria-expanded="true"], .btn.on { border-color: var(--ink); color: var(--ink); font-weight: 600 }
-.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin }
-.chip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px 5px 8px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap }
-.chip .dot { width: 10px; height: 10px; border-radius: 3px }
-.chip[aria-pressed="true"] { border-color: var(--fg); background: var(--surface-2); font-weight: 600 }
-.count { color: var(--muted); font-size: 13px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
-.linkbtn { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; font-size: 13px }
-.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px }
-.filters[hidden] { display: none }
-.fl { display: grid; gap: 4px; font-size: 12.5px }
-.fl .top { display: flex; justify-content: space-between; color: var(--muted) }
-.fl .top b { color: var(--fg); font-family: var(--font-num); font-weight: 600 }
-.fl input[type=range] { width: 100%; accent-color: var(--ink) }
+/* 지수 띠 */
+.idx { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 16px; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px }
+.idx::-webkit-scrollbar { display: none }
+.ic { scroll-snap-align: start; background: var(--surface); border: 0; border-radius: 16px; padding: 14px 14px 10px; text-align: left; display: grid; gap: 1px; min-width: 0; box-shadow: var(--shadow) }
+.ic .n { font-size: 13px; color: var(--fg-2); font-weight: 500; display: flex; justify-content: space-between; gap: 6px }
+.ic .n i { font-style: normal; font-size: 11px; color: var(--muted); font-weight: 400 }
+.ic .v { font-size: 18px; font-weight: 700; letter-spacing: -0.02em }
+.ic .c { font-size: 13px; font-weight: 500 }
+.ic .spark { width: 100%; height: 30px; margin-top: 4px }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; cursor: pointer }
-.head { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center }
-.tk { font-family: var(--font-num); font-weight: 600; font-size: 13px; color: #fff; padding: 5px 8px; border-radius: 6px; text-decoration: none; letter-spacing: 0.02em; white-space: nowrap }
-.nm { min-width: 0 }
-.nm .n { font-weight: 700; font-size: 15px; line-height: 1.25 }
-.nm .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.grade { font-family: var(--font-num); font-weight: 700; font-size: 13px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none }
+/* 시장 등락 막대 */
+.breadth { display: grid; gap: 8px }
+.bbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--surface-3) }
+.bbar i { display: block; height: 100% }
+.blbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted) }
+.blbl b { font-weight: 700 }
+
+/* 칩 탭 */
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -20px; padding: 0 20px }
+.box:not(.tight) .chips { margin: 0; padding: 0 }
+.chips::-webkit-scrollbar { display: none }
+.chip { flex: none; border: 0; background: var(--surface-2); color: var(--fg-2); border-radius: 999px; padding: 7px 13px; font-size: 13.5px; font-weight: 500; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center }
+.chip .dot { width: 8px; height: 8px; border-radius: 50% }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--surface); font-weight: 700 }
+.box.tight .chips { padding-bottom: 4px }
+
+/* 종목 한 줄 */
+.rows { display: grid }
+.rw { display: grid; grid-template-columns: auto 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 20px; cursor: pointer; min-width: 0 }
+.rw:hover, .rw:focus-visible { background: var(--surface-2) }
+.rk { width: 18px; text-align: center; font-weight: 700; color: var(--accent); font-size: 15px }
+.rw.norank { grid-template-columns: 40px minmax(0, 1fr) auto }
+.rw.norank .rk { display: none }
+.logo { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 11px; letter-spacing: -0.02em; overflow: hidden; position: relative }
+.logo.sm { width: 34px; height: 34px; font-size: 10px }
+.logo .st { position: absolute; right: -2px; bottom: -2px; color: var(--star); font-size: 13px; text-shadow: 0 0 2px var(--surface) }
+.rw .nm { min-width: 0 }
+.rw .n { font-weight: 700; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.rw .s { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 6px; align-items: center }
+.rp { text-align: right; display: grid; justify-items: end; gap: 0 }
+.rp .p { font-weight: 700; font-size: 15.5px }
+.rp .c { font-size: 13px; font-weight: 500 }
+.grade { font-weight: 800; font-size: 11px; width: 18px; height: 18px; border-radius: 6px; display: inline-grid; place-items: center; flex: none }
 .g-A { background: var(--good-bg); color: var(--good) } .g-B { background: var(--warn-bg); color: var(--warn) } .g-C { background: var(--c-bg); color: var(--c-fg) }
-.star { border: 0; background: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); padding: 0 }
-.star svg { width: 20px; height: 20px }
-.star[aria-pressed="true"] { color: var(--star) }
-.star:hover { background: var(--surface-2) }
-.px { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end }
-.big { font-family: var(--font-num); font-size: 24px; font-weight: 600; line-height: 1.1 }
-.chgline { font-family: var(--font-num); font-size: 13px; font-weight: 600 }
-.asof { font-size: 11.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
-.badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap }
+.badge { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); white-space: nowrap; font-weight: 500 }
 .badge.warn { background: var(--warn-bg); color: var(--warn) }
 .badge.alert { background: var(--alert-bg); color: var(--alert) }
-.sp { display: grid; justify-items: end; gap: 2px; font-size: 11px }
-.spark { width: 120px; height: 38px; display: block }
-.desc { font-size: 13px; margin: 0; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
-.mets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden }
-.m { background: var(--surface-2); padding: 7px 8px; display: grid; gap: 1px; min-width: 0 }
-.m .k { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.m .v { font-family: var(--font-num); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.range { display: grid; gap: 4px }
-.range .lbl { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted) }
-.track { position: relative; height: 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--line) }
-.pin { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--fg) }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11.5px }
-.tag { padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted) }
-.mine { font-size: 12.5px; background: var(--surface-2); border-radius: 8px; padding: 7px 10px; display: grid; gap: 2px; border-left: 3px solid var(--star) }
-.mine .memo { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .hit { color: var(--good); font-weight: 700 }
-.more { justify-self: start; border: 0; background: none; color: var(--ink); font-weight: 600; font-size: 13px; padding: 0 }
+.empty { padding: 28px 20px; text-align: center; color: var(--muted); font-size: 14px; display: grid; gap: 10px; justify-items: center }
+.btn { border: 0; background: var(--surface-2); border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px }
+.btn.prim { background: var(--accent); color: #fff }
+.btn.on { background: var(--accent-bg); color: var(--accent) }
 
-.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r) }
-table { border-collapse: collapse; width: 100%; min-width: 1060px; font-size: 13px }
-th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle }
-th { position: sticky; top: 0; background: var(--surface-2); font-size: 12px; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap }
+/* 섹터 등락 타일 */
+.secs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px }
+.sec { border: 0; border-radius: 14px; padding: 12px; text-align: left; display: grid; gap: 2px; min-width: 0 }
+.sec .n { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.sec .c { font-size: 16px; font-weight: 800 }
+.sec .s { font-size: 11.5px; color: var(--fg-2); opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+/* 종목 탭 필터 */
+.bar { position: sticky; top: calc(56px + env(safe-area-inset-top)); z-index: 10; background: var(--bg); display: grid; gap: 8px; padding: 4px 0 8px }
+.srow { display: flex; gap: 8px }
+.search { flex: 1 1 auto; min-width: 0; padding: 11px 14px; border: 0; border-radius: 12px; background: var(--surface); font-size: 15px }
+.ctrls { display: grid; gap: 10px }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+select { padding: 10px 12px; border: 0; border-radius: 12px; background: var(--surface); max-width: 100%; font-size: 14px }
+.seg { display: inline-flex; background: var(--surface-3); border-radius: 12px; padding: 3px; flex: none; gap: 2px }
+.seg button { border: 0; background: none; padding: 6px 12px; font-size: 13.5px; border-radius: 9px; color: var(--fg-2); white-space: nowrap; font-weight: 500 }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.12) }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 20px; background: var(--surface); border-radius: 16px; padding: 14px 16px }
+.filters[hidden] { display: none }
+.fl { display: grid; gap: 4px; font-size: 13px }
+.fl .top { display: flex; justify-content: space-between; color: var(--muted) }
+.fl .top b { color: var(--fg) }
+.fl input[type=range] { width: 100%; accent-color: var(--accent) }
+.count { color: var(--muted); font-size: 13px; display: flex; gap: 10px; align-items: center; padding: 0 4px }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; font-weight: 600 }
+.shead, .sfoot, #obtn { display: none }
+.scrim { display: none }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px }
+.card { background: var(--surface); border-radius: var(--r); padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; cursor: pointer; box-shadow: var(--shadow) }
+.chead { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center }
+.chead .n { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.chead .s { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.px { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end }
+.big { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15 }
+.chg { font-size: 14px; font-weight: 600 }
+.asof { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
+.spark { display: block }
+.card .spark { width: 110px; height: 40px }
+.rw .spark { width: 56px; height: 26px }
+.desc { font-size: 13.5px; margin: 0; color: var(--fg-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.mets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.m { background: var(--surface-2); border-radius: 12px; padding: 8px 10px; display: grid; gap: 1px; min-width: 0 }
+.m .k { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.m .v { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.mine { font-size: 13px; background: var(--accent-bg); border-radius: 12px; padding: 8px 12px; display: grid; gap: 2px }
+.mine .memo { color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.tablewrap { overflow-x: auto; background: var(--surface); border-radius: var(--r) }
+table { border-collapse: collapse; width: 100%; min-width: 1000px; font-size: 13.5px }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle }
+th { position: sticky; top: 0; background: var(--surface); font-size: 12px; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap }
 th[aria-sort] { color: var(--fg) }
 td.r, th.r { text-align: right }
 tbody tr { cursor: pointer } tbody tr:hover { background: var(--surface-2) }
-td .tk { font-size: 12px; padding: 3px 6px }
-td .star { width: 28px; height: 28px }
 
-.guide { display: grid; gap: 10px }
-h2 { font-size: 18px; margin: 8px 0 0 }
+/* 내 투자 요약 */
+.sum { display: grid; gap: 4px }
+.sum .k { font-size: 14px; color: var(--fg-2); font-weight: 500 }
+.sum .v { font-size: 30px; font-weight: 800; letter-spacing: -0.03em }
+.sum .c { font-size: 15px; font-weight: 600 }
+.kv2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px }
+.kv2 div { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: grid; gap: 1px }
+.kv2 .k { font-size: 12px; color: var(--muted) } .kv2 .v { font-weight: 700 }
+
+/* 더보기 */
 .gcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px }
-.gc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; font-size: 12.5px; min-width: 0 }
+.gc { background: var(--surface-2); border-radius: 16px; padding: 14px 16px; display: grid; gap: 6px; font-size: 13.5px; min-width: 0 }
 .gc .k { color: var(--muted) }
-.note { color: var(--muted); font-size: 12px; line-height: 1.6 }
-.empty { padding: 40px 16px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r) }
+.gc .t { font-weight: 800; font-size: 15px; display: flex; gap: 8px; align-items: center }
+.gc .t i { width: 10px; height: 10px; border-radius: 50%; display: inline-block }
+.setrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14.5px }
+.note { color: var(--muted); font-size: 12.5px; line-height: 1.7; margin: 0 }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-2) }
+.pill .d { width: 7px; height: 7px; border-radius: 50%; background: var(--muted) }
+.pill.ok .d { background: var(--good) }
 
-/* 상세 패널 */
-dialog#dlg { padding: 0; border: 0; margin: 0 0 0 auto; height: 100%; max-height: 100%; height: 100dvh; max-height: 100dvh; width: min(820px, 100vw); max-width: 100vw; background: var(--bg); color: var(--fg); box-shadow: -8px 0 30px rgba(0,0,0,.25) }
-dialog#dlg::backdrop { background: rgba(10, 15, 20, .45) }
-.dl { display: grid; gap: 14px; padding: 0 16px calc(32px + env(safe-area-inset-bottom)) }
-.dhead { position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 12px 0 10px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center }
-.dhead .ctl { display: flex; gap: 4px; align-items: center }
-.icon { border: 1px solid var(--line); background: var(--surface); width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; padding: 0 }
-.icon svg { width: 18px; height: 18px }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; min-width: 0 }
-.panel h3 { margin: 0; font-size: 14px }
-.dprice { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline }
-.dprice .big { font-size: 32px }
-.dprice .chgline { font-size: 16px }
+/* 탭 바: 모바일은 아래, 넓은 화면은 앱 바 아래 */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr); padding-bottom: env(safe-area-inset-bottom) }
+.tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 1px; padding: 8px 0 7px; font-size: 11px; color: var(--muted); font-weight: 500 }
+.tabbar svg { width: 24px; height: 24px }
+.tabbar button[aria-pressed="true"] { color: var(--fg); font-weight: 700 }
+@media (min-width: 900px) {
+  body { padding-bottom: 0 }
+  .tabbar { position: sticky; top: calc(56px + env(safe-area-inset-top)); bottom: auto; max-width: 1000px; margin: 0 auto; border: 0; background: var(--bg);
+    display: flex; gap: 4px; padding: 0 16px 8px; z-index: 19 }
+  .tabbar button { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; padding: 8px 14px; border-radius: 12px }
+  .tabbar svg { width: 18px; height: 18px }
+  .tabbar button[aria-pressed="true"] { background: var(--surface) }
+  .bar { top: calc(104px + env(safe-area-inset-top)) }
+  html { scroll-padding-top: 120px }
+  .view[data-view="home"] { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "idx idx" "best br" "best sec" "best star" "best ."; align-items: start }
+  .view[data-view="home"] > .idx { grid-area: idx } .h-br { grid-area: br } .h-best { grid-area: best } .h-sec { grid-area: sec } .h-star { grid-area: star }
+  .h-sec .secs { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .view[data-view="star"], .view[data-view="hold"] { max-width: 720px; width: 100%; margin: 0 auto }
+}
+
+/* 상세 화면 */
+dialog#dlg { padding: 0; border: 0; margin: 0 0 0 auto; height: 100%; max-height: 100%; height: 100dvh; max-height: 100dvh; width: min(760px, 100vw); max-width: 100vw; background: var(--bg); color: var(--fg); box-shadow: -8px 0 30px rgba(0,0,0,.25) }
+dialog#dlg::backdrop { background: rgba(0, 0, 0, .45) }
+.dl { display: grid; gap: 12px; padding: 0 16px calc(32px + env(safe-area-inset-bottom)) }
+.dhead { position: sticky; top: 0; z-index: 3; background: var(--bg); padding: calc(10px + env(safe-area-inset-top)) 0 8px; display: flex; align-items: center; gap: 4px }
+.dhead .sp { flex: 1 }
+.icon { border: 0; background: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; padding: 0; color: var(--fg) }
+.icon:hover { background: var(--surface-3) }
+.icon:disabled { opacity: .3 }
+.icon svg { width: 22px; height: 22px }
+.star[aria-pressed="true"] { color: var(--star) }
+.dtop { display: grid; gap: 4px; padding: 4px 4px 0 }
+.dtop .who { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.dtop .who .n { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.dtop .who .t { font-size: 13px; color: var(--muted) }
+.dtop .big { font-size: 32px }
+.dtop .chg { font-size: 15px }
 .links { display: flex; flex-wrap: wrap; gap: 6px }
-.links a { font-size: 12.5px; text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: var(--surface); white-space: nowrap }
-.links a:hover { border-color: var(--ink); color: var(--ink) }
-.links a.pri { background: var(--ink); color: var(--surface); border-color: var(--ink) }
+.links a { font-size: 13px; border-radius: 999px; padding: 6px 12px; background: var(--surface-2); white-space: nowrap; font-weight: 500 }
+.links a:hover { background: var(--surface-3) }
+.links a.pri { background: var(--accent); color: #fff }
 .ctop { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center }
-.legend { font-family: var(--font-num); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 12px; min-height: 18px }
+.legend { font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 2px 12px; min-height: 19px; color: var(--fg-2) }
 .legend .k { color: var(--muted) }
-.malgd { display: flex; gap: 10px; font-size: 12px; flex-wrap: wrap }
+.malgd { display: flex; gap: 12px; font-size: 12.5px; flex-wrap: wrap; color: var(--fg-2) }
 .malgd label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer }
 .malgd i { width: 14px; height: 3px; border-radius: 2px; display: inline-block }
-#chart { height: 340px; position: relative; min-width: 0 }
-#chart svg { display: block }
+#chart { height: 320px; position: relative; min-width: 0; margin: 0 -8px }
 .cnote { font-size: 12px; color: var(--muted) }
-.kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden }
-.kv > div { background: var(--surface-2); padding: 8px 10px; display: grid; gap: 1px; min-width: 0 }
-.kv .k { font-size: 11px; color: var(--muted) }
-.kv .v { font-family: var(--font-num); font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.txt { display: grid; gap: 8px; font-size: 13px; margin: 0 }
-.txt dt { color: var(--muted); font-size: 12px } .txt dd { margin: 0 }
-.alertbox { background: var(--alert-bg); color: var(--alert); border-radius: 8px; padding: 10px 12px; font-size: 13px; font-weight: 500 }
+.kv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 20px }
+.kv > div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); min-width: 0; font-size: 14px }
+.kv .k { color: var(--muted); white-space: nowrap } .kv .v { font-weight: 600; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.range { display: grid; gap: 6px }
+.range .lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted) }
+.track { position: relative; height: 4px; border-radius: 2px; background: var(--surface-3) }
+.pin { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--fg); border: 2px solid var(--surface) }
+.txt { display: grid; gap: 10px; font-size: 14px; margin: 0 }
+.txt dt { color: var(--muted); font-size: 12.5px; font-weight: 500 } .txt dd { margin: 0; color: var(--fg-2) }
+.alertbox { background: var(--alert-bg); color: var(--alert); border-radius: 14px; padding: 12px 14px; font-size: 13.5px; font-weight: 500 }
 .form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
-.form label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0 }
-.form input, .form textarea { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 8px 10px; font-size: 14px; color: var(--fg); min-width: 0; width: 100% }
-.form input { font-family: var(--font-num) }
+.form label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 0 }
+.form input, .form textarea { border: 0; border-radius: 12px; background: var(--surface-2); padding: 11px 12px; font-size: 15px; color: var(--fg); min-width: 0; width: 100% }
 .form .full { grid-column: 1 / -1 }
 .form textarea { min-height: 90px; resize: vertical; line-height: 1.5 }
-.calc { font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 4px 14px }
+.calc { font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--fg-2) }
 .saved { font-size: 12px; color: var(--muted) }
-@media (max-width: 640px) {
-  .kv { grid-template-columns: repeat(2, 1fr) } .form { grid-template-columns: 1fr 1fr } #chart { height: 280px }
-  .dprice .big { font-size: 26px } }
-@media (max-width: 480px) { .mets { grid-template-columns: repeat(2, 1fr) } .spark { width: 96px } }
+.tag { padding: 3px 9px; border-radius: 8px; background: var(--surface-2); color: var(--fg-2); font-size: 12px; font-weight: 500 }
+.tags { display: flex; flex-wrap: wrap; gap: 6px }
 
-.ctrls { display: grid; gap: 8px; min-width: 0 }
-.mob, .tabbar, .scrim { display: none }
-.btn.prim { background: var(--ink); color: var(--surface); border-color: var(--ink); font-weight: 600 }
-/* 목록 보기(증권 앱 스타일 한 줄 목록) */
-.rows { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
-.rw { display: grid; grid-template-columns: 58px minmax(0, 1fr) 56px auto; gap: 10px; align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--line); cursor: pointer }
-.rw:last-child { border-bottom: 0 }
-.rw:hover, .rw:focus-visible { background: var(--surface-2) }
-.rw .tk { text-align: center; font-size: 12px; padding: 5px 4px }
-.rw .n { font-weight: 700; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.rw .sub { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; white-space: nowrap; overflow: hidden }
-.gs { width: 18px; height: 18px; font-size: 11px; display: inline-grid }
-.rw .spark { width: 56px; height: 28px }
-.rp { text-align: right; display: grid; justify-items: end; gap: 1px }
-.rp .p { font-family: var(--font-num); font-weight: 600; font-size: 15px }
-.rp .chgline { font-size: 12.5px }
-.mystar { color: var(--star) }
-@media (max-width: 640px) {
-  body { padding-bottom: calc(62px + env(safe-area-inset-bottom)) }
-  .wrap { gap: 14px; padding-block: 14px 24px }
-  h1 { font-size: 21px }
-  .meta { font-size: 12px; gap: 4px 10px }
-  .notice { font-size: 12px; padding: 7px 10px }
-  .stats { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(150px, 62%); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 2px; scrollbar-width: none }
-  .stat { scroll-snap-align: start; padding: 10px 12px }
-  .stat .v { font-size: 17px }
-  .bar { padding-block: 8px }
-  .btn.mob { display: inline-flex }
-  .shead.mob { display: flex; justify-content: space-between; align-items: center; font-size: 16px }
-  .row.mob { display: grid; grid-template-columns: 1fr 2fr }
+@media (max-width: 899px) {
   .ctrls { display: none }
-  .ctrls.open { display: grid; gap: 12px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bg); border-radius: 16px 16px 0 0;
-    padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 86dvh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,.3) }
-  .ctrls .row { gap: 10px }
-  .ctrls select { flex: 1 1 100%; padding: 10px }
-  .ctrls .seg button { padding: 9px 13px }
+  #obtn { display: inline-flex }
+  .ctrls.open { display: grid; gap: 14px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--surface); border-radius: 22px 22px 0 0;
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); max-height: 86dvh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,.25) }
+  .ctrls.open .shead { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 800 }
+  .ctrls.open .sfoot { display: grid; grid-template-columns: 1fr 2fr; gap: 8px }
+  .ctrls select { flex: 1 1 100%; background: var(--surface-2) }
+  .ctrls .seg { background: var(--surface-2) }
   .ctrls .filters[hidden] { display: grid } #fbtn { display: none }
-  .ctrls .filters { border: 0; padding: 0; background: none; grid-template-columns: 1fr }
-  .sfoot .btn { padding: 11px; justify-content: center }
+  .ctrls .filters { padding: 0; grid-template-columns: 1fr }
+  .sfoot .btn { padding: 13px }
   body.sheet-open .bar { z-index: 50 }
-  .scrim:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(10, 15, 20, .45) }
-  .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface);
-    border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom) }
-  .tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 7px 0 6px; font-size: 11px; color: var(--muted) }
-  .tabbar svg { width: 22px; height: 22px }
-  .tabbar button[aria-pressed="true"] { color: var(--ink); font-weight: 700 }
-  .dhead .ctl { gap: 2px } .dhead .icon { width: 32px; height: 32px }
-  .dhead .nm .n { font-size: 15.5px !important }
+  .scrim:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, .45) }
 }
-@media (max-width: 380px) { .rw { grid-template-columns: 52px minmax(0, 1fr) auto } .rw .rsp { display: none } }
-@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s } .card:hover { border-color: var(--muted) } }
+@media (max-width: 560px) {
+  .form { grid-template-columns: 1fr 1fr } .kv { grid-template-columns: 1fr } #chart { height: 270px }
+  .dtop .big { font-size: 28px } .box { padding: 18px 16px } .box.tight > .bh { padding: 0 16px } .rw { padding: 10px 16px } .chips { margin: 0 -16px; padding: 0 16px }
+}
+@media (max-width: 380px) { .rw .rsp { display: none } }
 </style>
 
+<header class="top">
+  <div class="brand"><b>저평가 워치</b><span id="asof"></span></div>
+</header>
+
+<nav class="tabbar" id="tabbar" aria-label="화면 이동">
+  <button type="button" data-tab="home"><svg viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>홈</button>
+  <button type="button" data-tab="stocks"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3.5-4 3 2.5L20 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>종목</button>
+  <button type="button" data-tab="star"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3.2l2.6 5.5 6 .7-4.4 4.1 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.1 6-.7z"/></svg>관심</button>
+  <button type="button" data-tab="hold"><svg viewBox="0 0 24 24"><path d="M4 8h16v11H4zM8.5 8V5.5h7V8M4 13h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>내 투자</button>
+  <button type="button" data-tab="more"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>더보기</button>
+</nav>
+
 <div class="wrap">
-  <header class="top">
-    <h1>저평가 우량주 워치리스트</h1>
-    <div class="meta" id="meta"></div>
-    <div class="notice" id="pricenote"></div>
-  </header>
-  <section class="stats" id="stats" aria-label="요약"></section>
-
-  <div class="bar" role="search">
-    <div class="row">
-      <input id="q" class="search" type="search" placeholder="티커, 회사명, 사업 내용, 내 메모로 검색" aria-label="검색">
-      <button type="button" class="btn mob" id="obtn" aria-expanded="false" aria-controls="ctrls">필터·정렬</button>
+  <!-- 홈 -->
+  <section class="view" data-view="home">
+    <div class="idx" id="idx" aria-label="시장 지수"></div>
+    <div class="box h-br">
+      <div class="bh"><h2>시장 분위기</h2><span class="sub" id="brsub"></span></div>
+      <div class="breadth" id="breadth"></div>
     </div>
-    <div class="scrim" id="scrim" hidden></div>
-    <div class="ctrls" id="ctrls" role="group" aria-label="필터와 정렬">
-    <div class="shead mob"><b>필터 · 정렬</b><button type="button" class="icon" id="cclose" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></div>
-    <div class="row">
-      <select id="scen" aria-label="시나리오">
-        <option value="">시나리오 전체</option><option>지금 유리</option><option>방어</option><option>인상 종료 후</option><option>AI 성장</option>
-      </select>
-      <select id="sort" aria-label="정렬">
-        <option value="grade">정렬: 등급순</option><option value="upside">목표가 상승여력 큰 순</option><option value="msdisc">모닝스타 할인율 큰 순</option>
-        <option value="dchg">전일 대비 상승 순</option><option value="dchg_lo">전일 대비 하락 순</option>
-        <option value="off52">52주 고점 대비 많이 빠진 순</option><option value="div">배당수익률 높은 순</option><option value="fpe">예상 PER 낮은 순</option>
-        <option value="mcap">시가총액 큰 순</option><option value="chg">지난 갱신 대비 상승 순</option><option value="buygap">매수 희망가에 가까운 순</option>
-      </select>
+    <div class="box tight h-best">
+      <div class="bh"><h2>BEST 종목</h2><span class="sub" id="bestsub"></span></div>
+      <div class="chips" id="bestchips"></div>
+      <div class="rows" id="best"></div>
+      <div style="padding:0 20px 8px"><button type="button" class="btn" id="bestmore" style="width:100%">전체 보기</button></div>
     </div>
-    <div class="row">
-      <div class="seg" id="mine" aria-label="내 종목 필터">
-        <button type="button" data-m="" aria-pressed="true">전체</button><button type="button" data-m="star" aria-pressed="false">★ 관심</button><button type="button" data-m="hold" aria-pressed="false">보유</button>
-      </div>
-      <div class="seg" id="grades" aria-label="등급 필터">
-        <button type="button" data-g="A" aria-pressed="true">A</button><button type="button" data-g="B" aria-pressed="true">B</button><button type="button" data-g="C" aria-pressed="true">C</button>
-      </div>
-      <button type="button" class="btn" id="fbtn" aria-expanded="false" aria-controls="filters">조건 필터</button>
-      <div class="seg" id="view" aria-label="보기 방식">
-        <button type="button" data-v="rows" aria-pressed="false">목록</button><button type="button" data-v="card" aria-pressed="true">카드</button><button type="button" data-v="table" aria-pressed="false">표</button>
-      </div>
+    <div class="box h-sec">
+      <div class="bh"><h2>섹터별 등락</h2><span class="sub">섹터 안 종목 평균</span></div>
+      <div class="secs" id="secs"></div>
     </div>
-    <div class="filters" id="filters" hidden>
-      <div class="fl"><div class="top"><span>목표가 상승여력 최소</span><b id="fu-v"></b></div><input type="range" id="fu" min="-30" max="100" step="5" value="-30" aria-label="목표가 상승여력 최소"></div>
-      <div class="fl"><div class="top"><span>예상 PER 최대</span><b id="fp-v"></b></div><input type="range" id="fp" min="5" max="60" step="1" value="60" aria-label="예상 PER 최대"></div>
-      <div class="fl"><div class="top"><span>배당수익률 최소</span><b id="fd-v"></b></div><input type="range" id="fd" min="0" max="8" step="0.5" value="0" aria-label="배당수익률 최소"></div>
-      <div class="fl"><div class="top"><span>52주 고점 대비 하락 최소</span><b id="fo-v"></b></div><input type="range" id="fo" min="0" max="60" step="5" value="0" aria-label="52주 고점 대비 하락 최소"></div>
+    <div class="box tight h-star">
+      <div class="bh"><h2>내 관심 종목</h2><button type="button" class="more" data-go="star">전체 보기 ›</button></div>
+      <div class="rows" id="homestar"></div>
     </div>
-    <div class="row mob sfoot"><button type="button" class="btn" id="reset2">모두 해제</button><button type="button" class="btn prim" id="capply">결과 보기</button></div>
-    </div>
-    <div class="chips" id="chips" aria-label="섹터 필터"></div>
-    <div class="count"><span id="count"></span><button type="button" class="linkbtn" id="reset" hidden>필터 모두 해제</button></div>
-  </div>
-
-  <main id="list"></main>
-
-  <section class="guide" aria-labelledby="gh">
-    <h2 id="gh">섹터 가이드</h2>
-    <div class="note">섹터별로 어떻게 돈을 벌고, 금리 방향에 따라 어떻게 움직이는지 정리했습니다. 섹터 이름을 누르면 위 목록이 그 섹터로 걸러집니다.</div>
-    <div class="gcards" id="guide"></div>
   </section>
 
-  <footer class="note" id="foot"></footer>
-</div>
+  <!-- 종목 -->
+  <section class="view" data-view="stocks" hidden>
+    <div class="bar" role="search">
+      <div class="srow">
+        <input id="q" class="search" type="search" placeholder="종목명, 티커, 사업 내용, 내 메모 검색" aria-label="검색">
+        <button type="button" class="btn" id="obtn" aria-expanded="false" aria-controls="ctrls">필터·정렬</button>
+      </div>
+      <div class="scrim" id="scrim" hidden></div>
+      <div class="ctrls" id="ctrls" role="group" aria-label="필터와 정렬">
+        <div class="shead"><span>필터 · 정렬</span><button type="button" class="icon" id="cclose" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></div>
+        <div class="row">
+          <select id="sort" aria-label="정렬">
+            <option value="grade">등급순</option><option value="dchg">상승률 높은 순</option><option value="dchg_lo">하락률 높은 순</option>
+            <option value="tv">거래대금 많은 순</option><option value="upside">목표가 여력 큰 순</option><option value="msdisc">모닝스타 할인율 큰 순</option>
+            <option value="off52">52주 고점 대비 많이 빠진 순</option><option value="div">배당수익률 높은 순</option><option value="fpe">예상 PER 낮은 순</option>
+            <option value="mcap">시가총액 큰 순</option><option value="chg">지난주 대비 상승 순</option><option value="buygap">매수 희망가에 가까운 순</option>
+          </select>
+          <select id="scen" aria-label="시나리오">
+            <option value="">시나리오 전체</option><option>지금 유리</option><option>방어</option><option>인상 종료 후</option><option>AI 성장</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="seg" id="grades" aria-label="등급 필터">
+            <button type="button" data-g="A" aria-pressed="true">A등급</button><button type="button" data-g="B" aria-pressed="true">B등급</button><button type="button" data-g="C" aria-pressed="true">C등급</button>
+          </div>
+          <div class="seg" id="view" aria-label="보기 방식">
+            <button type="button" data-v="rows" aria-pressed="true">목록</button><button type="button" data-v="card" aria-pressed="false">카드</button><button type="button" data-v="table" aria-pressed="false">표</button>
+          </div>
+          <button type="button" class="btn" id="fbtn" aria-expanded="false" aria-controls="filters">조건 필터</button>
+        </div>
+        <div class="filters" id="filters" hidden>
+          <div class="fl"><div class="top"><span>목표가 상승여력 최소</span><b id="fu-v"></b></div><input type="range" id="fu" min="-30" max="100" step="5" value="-30" aria-label="목표가 상승여력 최소"></div>
+          <div class="fl"><div class="top"><span>예상 PER 최대</span><b id="fp-v"></b></div><input type="range" id="fp" min="5" max="60" step="1" value="60" aria-label="예상 PER 최대"></div>
+          <div class="fl"><div class="top"><span>배당수익률 최소</span><b id="fd-v"></b></div><input type="range" id="fd" min="0" max="8" step="0.5" value="0" aria-label="배당수익률 최소"></div>
+          <div class="fl"><div class="top"><span>52주 고점 대비 하락 최소</span><b id="fo-v"></b></div><input type="range" id="fo" min="0" max="60" step="5" value="0" aria-label="52주 고점 대비 하락 최소"></div>
+        </div>
+        <div class="sfoot"><button type="button" class="btn" id="reset2">모두 해제</button><button type="button" class="btn prim" id="capply">결과 보기</button></div>
+      </div>
+      <div class="chips" id="chips" aria-label="섹터 필터"></div>
+      <div class="count"><span id="count"></span><button type="button" class="linkbtn" id="reset" hidden>필터 해제</button></div>
+    </div>
+    <div id="list"></div>
+  </section>
 
-<nav class="tabbar" id="tabbar" aria-label="빠른 이동">
-  <button type="button" data-tab=""><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>전체</button>
-  <button type="button" data-tab="star"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.1l-5.7 3.2 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>관심</button>
-  <button type="button" data-tab="hold"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3zM8 7V5h8v2M3 12h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>보유</button>
-  <button type="button" data-tab="guide"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>섹터</button>
-</nav>
+  <!-- 관심 -->
+  <section class="view" data-view="star" hidden>
+    <div class="box tight">
+      <div class="bh"><h2>관심 종목</h2><span class="sub" id="starsub"></span></div>
+      <div class="rows" id="starlist"></div>
+    </div>
+  </section>
+
+  <!-- 내 투자 -->
+  <section class="view" data-view="hold" hidden>
+    <div class="box" id="holdsum"></div>
+    <div class="box tight">
+      <div class="bh"><h2>보유 종목</h2><span class="sub">현재가 기준</span></div>
+      <div class="rows" id="holdlist"></div>
+    </div>
+  </section>
+
+  <!-- 더보기 -->
+  <section class="view" data-view="more" hidden>
+    <div class="box">
+      <div class="bh"><h2>설정</h2></div>
+      <div class="setrow"><span>등락 색</span><span class="seg" id="updown"><button type="button" data-u="kr">상승 빨강</button><button type="button" data-u="us">상승 초록</button></span></div>
+      <div class="setrow"><span>내 기록 저장</span><span id="store" class="pill"></span></div>
+    </div>
+    <div class="box">
+      <div class="bh"><h2>데이터 안내</h2></div>
+      <p class="note" id="datanote"></p>
+    </div>
+    <div class="box">
+      <div class="bh"><h2>섹터 가이드</h2></div>
+      <p class="note" style="margin-top:-6px">섹터별로 어떻게 돈을 벌고 금리 방향에 따라 어떻게 움직이는지 정리했습니다. 이름을 누르면 그 섹터 종목만 봅니다.</p>
+      <div class="gcards" id="guide"></div>
+    </div>
+    <p class="note" id="foot" style="padding:0 4px"></p>
+  </section>
+</div>
 
 <dialog id="dlg" aria-labelledby="dtitle"><div class="dl" id="dbody"></div></dialog>
 
@@ -322,7 +419,7 @@ dialog#dlg::backdrop { background: rgba(10, 15, 20, .45) }
 <div id="boot" style="position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);color:var(--muted);font-size:14px;z-index:100">불러오는 중…</div>
 <script>
 window.LW_SRCS = ["vendor/lightweight-charts.js", "https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];
-window.APP_VERSION = "25eaf93fa5";
+window.APP_VERSION = "4b5f230385";
 (async () => {
   const boot = document.getElementById("boot");
   try {
@@ -333,7 +430,7 @@ window.APP_VERSION = "25eaf93fa5";
     boot.textContent = "데이터를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
     return;
   }
-  const s = document.createElement("script"); s.src = "app.js?v=25eaf93fa5";
+  const s = document.createElement("script"); s.src = "app.js?v=4b5f230385";
   s.onload = () => boot.remove();
   s.onerror = () => boot.textContent = "앱 파일을 불러오지 못했습니다. 다시 열어 주세요.";
   document.body.appendChild(s);
