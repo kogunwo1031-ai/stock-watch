@@ -96,6 +96,7 @@
   window.__back = () => {
     for (const d of [$("#bk"), $("#about")]) if (d.open) { d.close(); return true; }
     if (!menu.hidden) { showMenu(false); return true; }
+    if (window.__chartFullClose && window.__chartFullClose()) return true;
     if (dlg.open) { closeDetail(); return true; }
     const c = $("#ctrls"); if (c && c.classList.contains("open")) { sheet(false); return true; }
     return false;

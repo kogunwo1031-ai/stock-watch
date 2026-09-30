@@ -194,7 +194,7 @@ for code, rs in KRD.items():
                     rs[q][5] = (rs[q][5] or 0) / ratio
                 kr_adj.append(f"{code} {last[8]} {rs[j][0]} 비율 {ratio:.4f}")
     h = []
-    for r in rs[-150:]:
+    for r in rs[-250:]:
         o, hh, ll, c = r[1], r[2], r[3], r[4]
         if not c: continue
         if not o or not hh or not ll: o = hh = ll = c   # 거래정지일 등
@@ -231,7 +231,39 @@ for t, r in rows_out.items():
     if abs(ch) > 0.6: report.append(f"  큰 등락 확인 필요: {t} {r['n']} {ch:+.1%}")
 
 # ================= 저장 =================
-cols = ["t", "n", "m", "x", "s", "i", "p", "d", "pd", "pp", "v", "tv", "mc", "hi", "lo", "rd", "ix", "cur", "prod", "va"]
+# 골라보기용 지표(서버에서 미리 계산): 기간 수익률, RSI(14), 이동평균 교차, 연속 상승·하락 일수
+def stats(h):
+    cs = [(r[4] if len(r) > 3 else r[1]) for r in h]
+    n = len(cs); out = {}
+    for k, lb in (("r5", 5), ("r20", 20), ("r60", 60), ("r120", 120), ("r250", 245)):
+        out[k] = round(cs[-1] / cs[-1 - lb] - 1, 4) if n > lb and cs[-1 - lb] else None
+    if n > 15:
+        g = l = 0.0
+        for i in range(1, 15): d = cs[i] - cs[i - 1]; g += max(d, 0); l += max(-d, 0)
+        g /= 14; l /= 14
+        for i in range(15, n): d = cs[i] - cs[i - 1]; g = (g * 13 + max(d, 0)) / 14; l = (l * 13 + max(-d, 0)) / 14
+        out["rsi"] = round(100 - 100 / (1 + g / l), 1) if l else 100.0
+    def ma(k, end): return sum(cs[end - k:end]) / k if end >= k else None
+    gc = dc = 0
+    for back in range(0, 3):
+        e = n - back
+        a5, a20, p5, p20 = ma(5, e), ma(20, e), ma(5, e - 1), ma(20, e - 1)
+        if None not in (a5, a20, p5, p20):
+            if p5 <= p20 and a5 > a20: gc = 1
+            if p5 >= p20 and a5 < a20: dc = 1
+    out["gc"], out["dc"] = gc, dc
+    stk = 0
+    for i in range(n - 1, 0, -1):
+        d = cs[i] - cs[i - 1]
+        if d > 0 and stk >= 0: stk += 1
+        elif d < 0 and stk <= 0: stk -= 1
+        else: break
+    out["stk"] = stk
+    a60 = ma(60, n); out["m60"] = round(cs[-1] / a60 - 1, 4) if a60 else None
+    return out
+for t, r in rows_out.items(): r.update(stats(hist_out[t]))
+cols = ["t", "n", "m", "x", "s", "i", "p", "d", "pd", "pp", "v", "tv", "mc", "hi", "lo", "rd", "ix", "cur", "prod", "va",
+        "r5", "r20", "r60", "r120", "r250", "rsi", "gc", "dc", "stk", "m60"]
 def spark(h):
     cs = [(r[4] if len(r) > 3 else r[1]) for r in h[-40:]]
     mn, mx = min(cs), max(cs); rg = (mx - mn) or 1
